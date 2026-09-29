@@ -1,0 +1,9 @@
+.wrap { display: inline-flex; align-items: center; gap: 6px; }
+.toggle { width: 30px; height: 30px; flex-shrink: 0; display: grid; place-items: center; padding: 0; border: 0; border-radius: var(--r-sm); background: transparent; color: var(--icon-muted); }
+.toggle:hover { background: var(--surface-alt); color: var(--primary); }
+.toggle :global(.icon) { width: 18px; height: 18px; }
+
+@media (max-width: 767px) {
+  .toggle { width: 26px; height: 26px; }
+  .toggle :global(.icon) { width: 16px; height: 16px; }
+}

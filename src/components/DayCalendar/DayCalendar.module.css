@@ -1,0 +1,35 @@
+.scroller { overflow-x: auto; margin: 0 -22px; padding: 0 22px 4px; }
+.grid { display: grid; min-width: min-content; }
+.corner { position: sticky; left: 0; z-index: 2; background: var(--surface); }
+.courtHead { padding: 8px 10px 10px; display: flex; flex-direction: column; border-bottom: 1px solid var(--line); }
+.courtHead strong { font-size: 15px; font-weight: 800; }
+.courtHead span { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text-2); }
+.times { position: sticky; left: 0; z-index: 2; background: var(--surface); }
+.times span { position: absolute; right: 8px; transform: translateY(-50%); font-size: 12px; font-weight: 700; color: var(--text-2); font-variant-numeric: tabular-nums; }
+.times span:first-child { transform: none; }
+.column {
+  position: relative; border-left: 1px solid var(--line-soft);
+  background-image: linear-gradient(var(--line-soft) 1px, transparent 1px);
+}
+.event {
+  position: absolute; left: 4px; right: 4px; z-index: 1; overflow: hidden;
+  display: flex; flex-direction: column; gap: 1px; padding: 4px 8px;
+  border-radius: var(--r-sm); border: 1px solid transparent; font-size: 12px; line-height: 1.25;
+}
+.event strong { font-size: 12.5px; font-weight: 800; }
+.event span { color: inherit; opacity: .85; }
+.group { background: var(--primary); color: var(--on-primary); }
+.group:hover { background: var(--primary-press); color: var(--on-primary); }
+.private { background: var(--accent-soft); border-color: var(--accent-line); color: var(--on-accent); }
+.private:hover { border-color: var(--primary); color: var(--on-accent); }
+.reservation { background: var(--surface-alt); border-color: var(--line-strong); color: var(--text); }
+.reservation:hover { border-color: var(--primary); color: var(--text); }
+.live { box-shadow: 0 0 0 2px var(--accent); }
+.unpaid { border-color: var(--warn-border); border-style: dashed; }
+.block { background: repeating-linear-gradient(135deg, var(--line-soft) 0 6px, var(--court-maint-stripe-alt) 6px 12px); color: var(--neutral-ink); }
+.now { position: absolute; left: 0; right: 0; z-index: 3; height: 2px; background: var(--danger); }
+.now::before { content: ""; position: absolute; left: -4px; top: -3px; width: 8px; height: 8px; border-radius: 50%; background: var(--danger); }
+
+@media (max-width: 767px) {
+  .scroller { margin: 0 -16px; padding: 0 16px 4px; }
+}

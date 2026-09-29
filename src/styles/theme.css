@@ -1,0 +1,116 @@
+/* =========================================================
+   Tennis Clinic · Tema token'ları
+   Renk ve ölçülerin tek kaynağı. Bileşenler yalnızca bu
+   değişkenleri kullanır; ham renk değeri yazmaz.
+   ========================================================= */
+:root {
+  /* Tennis Clinic renk sistemi */
+  --tc-court-green: #2F6B4F;   /* Ana renk · CTA · başlıklar */
+  --tc-ball-lime: #C9F34A;     /* Vurgu · yalnızca öne çıkarmalar */
+  --tc-warm-white: #F7F7F2;    /* Uygulama arka planı */
+  --tc-deep-charcoal: #202521; /* Metin */
+  --tc-soft-sage: #DCE8DF;     /* İkincil yüzeyler */
+  --tc-green-deep: #1C4534;    /* Basılı hal · koyu kartlar */
+  --tc-green-night: #122A20;   /* Yan menü · koyu paneller */
+  --tc-lime-soft: #EFF9D0;     /* Rozet zemini */
+  --tc-sage-soft: #ECF3EE;     /* Alternatif yüzey */
+  --tc-white: #FFFFFF;         /* Kartlar */
+  --tc-muted: #6E7A70;         /* İkonlar */
+  --tc-hairline: #E4E9E2;      /* Ayırıcılar */
+
+  /* Anlamsal token'lar */
+  --bg: var(--tc-warm-white);
+  --surface: var(--tc-white);
+  --surface-alt: var(--tc-sage-soft);
+  --surface-hover: #FBFBF8;
+  --text: var(--tc-deep-charcoal);
+  --text-2: #5E6A60;
+  --icon-muted: var(--tc-muted);
+  --line: var(--tc-hairline);
+  --line-soft: #EEF1EC;
+  --line-strong: #CFDBD2;
+  --line-control: #D5DFD7;     /* Buton kenarı · kapalı segment · tutamak */
+  --primary: var(--tc-court-green);
+  --primary-press: var(--tc-green-deep);
+  --on-primary: var(--tc-white);
+  --accent: var(--tc-ball-lime);
+  --accent-press: #BFE93C;
+  --accent-soft: var(--tc-lime-soft);
+  --accent-line: #DCEFA0;
+  --on-accent: var(--tc-green-night);
+  --neutral-soft: #EEF1EC;
+  --neutral-ink: #4A554C;
+
+  /* Durum renkleri */
+  --warn: #B7791F;
+  --warn-ink: #8F5A0A;
+  --warn-soft: #FBF0D9;
+  --warn-line: #F1DDB0;
+  --warn-border: #E7C98F;
+  --danger: #B4432B;
+  --danger-press: #963622;
+  --danger-ink: #8A2F1C;
+  --danger-soft: #FBEAE5;
+  --danger-line: #F0C9BE;
+
+  /* Kort görseli */
+  --court-free-line: #BFD0C5;
+  --court-maint-stripe: #BFCBC3;
+  --court-maint-stripe-alt: #E2E7E1;
+  --court-busy-line: rgba(255, 255, 255, .5);
+  --court-free-lines: rgba(47, 107, 79, .35);
+  --court-free-net: rgba(47, 107, 79, .55);
+  --court-maint-lines: rgba(94, 106, 96, .35);
+  --court-maint-net: rgba(94, 106, 96, .5);
+  --court-coach: var(--tc-white);
+
+  /* Grafik */
+  --chart-bar: #739A86;
+  --chart-spark: #8FB3A0;
+
+  /* Yan menü */
+  --nav-bg: var(--tc-green-night);
+  --nav-surface: #1B3327;
+  --nav-border: #274536;
+  --nav-chip: #24402F;
+  --nav-divider: #22392D;
+  --nav-icon-bg: #244232;
+  --nav-text: #D3DCD5;
+  --nav-text-strong: var(--tc-warm-white);
+  --nav-text-hover: var(--tc-white);
+  --nav-hover: rgba(255, 255, 255, .06);
+  --nav-icon: #9FB2A5;
+  --nav-label: #8FA396;
+
+  /* Katmanlar */
+  --topbar-bg: rgba(247, 247, 242, .92);
+  --mobilebar-bg: rgba(247, 247, 242, .94);
+  --scrim: rgba(18, 42, 32, .55);
+  --pulse: rgba(47, 107, 79, .45);
+  --pulse-end: rgba(47, 107, 79, 0);
+
+  /* Tipografi & ölçüler */
+  --font: var(--font-urbanist), "Urbanist", system-ui, sans-serif;
+  --r-xl: 20px;
+  --r-lg: 16px;
+  --r-md: 14px;
+  --r-sm: 10px;
+  --pill: 999px;
+  --sidebar-w: 256px;
+  --gutter: 32px;
+  --shadow-float: 0 8px 18px rgba(18, 42, 32, .22);
+  --shadow-raised: 0 1px 2px rgba(18, 42, 32, .12);
+  --focus-ring: rgba(47, 107, 79, .18);
+}
+
+/* Kırılımlar
+   - ≥1366 px : tam yan menü + üst çubuk
+   - 768–1365 : ikonlu dar yan menü
+   - <768 px  : mobil çubuklar, alt sekmeler, hızlı işlem menüsü */
+@media (min-width: 768px) and (max-width: 1365px) {
+  :root { --sidebar-w: 80px; --gutter: 24px; }
+}
+
+@media (max-width: 767px) {
+  :root { --gutter: 16px; }
+}
