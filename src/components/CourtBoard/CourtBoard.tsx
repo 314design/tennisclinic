@@ -1,4 +1,5 @@
 import { ArrowRight } from "lucide-react";
+import Link from "next/link";
 import { CourtTile } from "@/components/CourtTile/CourtTile";
 import type { CourtCounts, CourtView } from "@/lib/courts";
 import type { ClockTime } from "@/lib/types";
@@ -8,10 +9,12 @@ interface CourtBoardProps {
   time: ClockTime;
   branch: string;
   counts: CourtCounts;
-  courts: { id: string; name: string; surface: string; view: CourtView }[];
+  courts: { id: number; name: string; surface: string; view: CourtView }[];
+  /** Müsait korttaki "Rezervasyon yap" bağlantısı */
+  reserveHref: (courtId: number) => string;
 }
 
-export function CourtBoard({ time, branch, counts, courts }: CourtBoardProps) {
+export function CourtBoard({ time, branch, counts, courts, reserveHref }: CourtBoardProps) {
   return (
     <section className={`card ${styles.courts}`} aria-labelledby="courts-title">
       <header className={`card__head ${styles.head}`}>
@@ -31,16 +34,16 @@ export function CourtBoard({ time, branch, counts, courts }: CourtBoardProps) {
             <li><span className={`${styles.swatch} ${styles.swatchFree}`} />Müsait <strong>{counts.free}</strong></li>
             <li><span className={`${styles.swatch} ${styles.swatchMaint}`} />Bakımda <strong>{counts.maint}</strong></li>
           </ul>
-          <a className={`btn btn--sm btn--outline ${styles.open}`} href="#">
+          <Link className={`btn btn--sm btn--outline ${styles.open}`} href="/takvim">
             Takvimi aç
             <ArrowRight className="icon icon--sm" aria-hidden="true" />
-          </a>
+          </Link>
         </div>
       </header>
 
       <div className={styles.grid}>
         {courts.map((c) => (
-          <CourtTile key={c.id} name={c.name} surface={c.surface} view={c.view} />
+          <CourtTile key={c.id} name={c.name} surface={c.surface} view={c.view} reserveHref={reserveHref(c.id)} />
         ))}
       </div>
     </section>

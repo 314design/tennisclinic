@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { formatRelative } from "@/lib/format";
 import type { Activity, Now } from "@/lib/types";
 import styles from "./ActivityFeed.module.css";
@@ -12,7 +13,7 @@ export function ActivityFeed({ items, now }: ActivityFeedProps) {
     <div className={styles.activity}>
       <div className={styles.head}>
         <h3>Son hareketler</h3>
-        <a href="#">Tümü</a>
+        <Link href="/uyeler">Tümü</Link>
       </div>
       <ul className={styles.list}>
         {items.map((item) => (

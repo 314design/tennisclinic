@@ -1,4 +1,5 @@
 import { ChevronRight } from "lucide-react";
+import Link from "next/link";
 import { CoachRow } from "@/components/CoachRow/CoachRow";
 import type { Coach, CoachState } from "@/lib/types";
 import styles from "./CoachesCard.module.css";
@@ -9,7 +10,7 @@ interface CoachesCardProps {
 }
 
 export function CoachesCard({ lessonsToday, coaches }: CoachesCardProps) {
-  const onDuty = coaches.filter((c) => c.state.type !== "off").length;
+  const onDuty = coaches.filter((c) => c.state.type !== "off" && c.coach.lessonsTotal > 0).length;
   return (
     <section className={`card ${styles.coaches}`} aria-labelledby="coaches-title">
       <header className="card__head">
@@ -19,10 +20,10 @@ export function CoachesCard({ lessonsToday, coaches }: CoachesCardProps) {
             Bugün {lessonsToday} ders · {onDuty} antrenör sahada
           </p>
         </div>
-        <a className="link" href="#">
+        <Link className="link" href="/antrenorler">
           Tümü
           <ChevronRight className="icon" aria-hidden="true" />
-        </a>
+        </Link>
       </header>
       <ul className={styles.list}>
         {coaches.map(({ coach, state }) => (

@@ -1,6 +1,7 @@
-import { ArrowUpRight } from "lucide-react";
 import { Fragment, type ReactNode } from "react";
-import type { CourtStatus, TextPart } from "@/lib/types";
+import { ConcealableValue } from "@/components/ConcealableValue/ConcealableValue";
+import { DeltaBadge } from "@/components/DeltaBadge/DeltaBadge";
+import type { CourtStatus, Delta, TextPart } from "@/lib/types";
 import styles from "./KpiCard.module.css";
 
 export type KpiVisual =
@@ -11,9 +12,11 @@ interface KpiCardProps {
   label: string;
   value: string;
   aside?: string;
-  delta: string;
+  delta: Delta;
   note: TextPart[];
   visual?: KpiVisual;
+  /** Tutar göz ikonuyla gizlenebilir */
+  concealable?: boolean;
 }
 
 const SPARK = { width: 96, pad: 2, top: 5.9, bottom: 24.9 };
@@ -53,23 +56,20 @@ function Occupancy({ states }: { states: CourtStatus[] }) {
   );
 }
 
-export function KpiCard({ label, value, aside, delta, note, visual }: KpiCardProps) {
+export function KpiCard({ label, value, aside, delta, note, visual, concealable }: KpiCardProps) {
   return (
     <article className={styles.kpi}>
       <h2 className={styles.label}>{label}</h2>
       <div className={styles.row}>
         <p className={styles.value}>
-          {value}
+          {concealable ? <ConcealableValue value={value} label={label} /> : value}
           {aside && <span className={styles.aside}>{aside}</span>}
         </p>
         {visual?.type === "sparkline" && <Sparkline values={visual.values} />}
         {visual?.type === "occupancy" && <Occupancy states={visual.states} />}
       </div>
       <p className={styles.foot}>
-        <span className="delta">
-          <ArrowUpRight className="icon icon--xs" aria-hidden="true" />
-          {delta}
-        </span>
+        <DeltaBadge delta={delta} />
         <span>
           {note.map((part, i) =>
             <Fragment key={i}>{typeof part === "string" ? part : <span className="hide-mobile">{part.text}</span>}</Fragment>,

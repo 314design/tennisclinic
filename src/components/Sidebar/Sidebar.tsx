@@ -1,6 +1,8 @@
 "use client";
 
 import { ChevronsUpDown, LogOut, MapPin, X } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { BrandMark } from "@/components/BrandMark/BrandMark";
 import { Icon } from "@/components/Icon/Icon";
@@ -18,9 +20,20 @@ interface SidebarProps {
   onClose: () => void;
 }
 
-function NavLink({ item }: { item: NavItem }) {
+/** Adres menü öğesinin altındaysa öğe etkin sayılır ("/" yalnızca kendisi) */
+export const isCurrent = (pathname: string, href: string) =>
+  href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
+
+function NavLink({ item, onNavigate }: { item: NavItem; onNavigate: () => void }) {
+  const pathname = usePathname();
   return (
-    <a className={styles.item} href={item.href} aria-current={item.current ? "page" : undefined} title={item.label}>
+    <Link
+      className={styles.item}
+      href={item.href}
+      aria-current={isCurrent(pathname, item.href) ? "page" : undefined}
+      title={item.label}
+      onClick={onNavigate}
+    >
       <Icon name={item.icon} />
       <span className={styles.text}>{item.label}</span>
       {item.count !== undefined && <span className={styles.count}>{item.count}</span>}
@@ -29,7 +42,7 @@ function NavLink({ item }: { item: NavItem }) {
           {item.badge.value}
         </span>
       )}
-    </a>
+    </Link>
   );
 }
 
@@ -46,13 +59,13 @@ export function Sidebar({ id, club, user, sections, footer, open, onClose }: Sid
         <X className="icon icon--lg" aria-hidden="true" />
       </button>
 
-      <a className={styles.brand} href="#">
+      <Link className={styles.brand} href="/" onClick={onClose}>
         <BrandMark />
         <span className={styles.brandText}>
           <span className={styles.brandName}>{club.name}</span>
           <span className={styles.brandSub}>{club.subtitle}</span>
         </span>
-      </a>
+      </Link>
 
       <button className={styles.branch} type="button" aria-label={`Şube değiştir: ${club.branch}`}>
         <span className={styles.branchIcon}>
@@ -70,7 +83,7 @@ export function Sidebar({ id, club, user, sections, footer, open, onClose }: Sid
           <div key={section.label} className={styles.section}>
             <p className={styles.label}>{section.label}</p>
             {section.items.map((item) => (
-              <NavLink key={item.label} item={item} />
+              <NavLink key={item.label} item={item} onNavigate={onClose} />
             ))}
           </div>
         ))}
@@ -78,7 +91,7 @@ export function Sidebar({ id, club, user, sections, footer, open, onClose }: Sid
 
       <div className={styles.foot}>
         {footer.map((item) => (
-          <NavLink key={item.label} item={item} />
+          <NavLink key={item.label} item={item} onNavigate={onClose} />
         ))}
         <div className={styles.me}>
           <span className="avatar avatar--me" aria-hidden="true">{user.initials}</span>

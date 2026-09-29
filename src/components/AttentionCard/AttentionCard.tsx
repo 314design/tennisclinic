@@ -14,13 +14,20 @@ export function AttentionCard({ alerts, activities, now }: AttentionCardProps) {
     <section className={`card ${styles.attention}`} aria-labelledby="attention-title">
       <header className="card__title-row">
         <h2 className="card__title" id="attention-title">Dikkat gerektirenler</h2>
-        <span className={styles.count}>{alerts.length}</span>
+        {alerts.length > 0 && <span className={styles.count}>{alerts.length}</span>}
       </header>
-      <ul className={styles.list}>
-        {alerts.map((a) => (
-          <AlertItem key={a.id} alert={a} />
-        ))}
-      </ul>
+      {alerts.length ? (
+        <ul className={styles.list}>
+          {alerts.map((a) => (
+            <AlertItem key={a.id} alert={a} />
+          ))}
+        </ul>
+      ) : (
+        <p className="empty">
+          <strong>Her şey yolunda</strong>
+          Bekleyen ödeme, biten üyelik ya da hava uyarısı yok.
+        </p>
+      )}
       <ActivityFeed items={activities} now={now} />
     </section>
   );

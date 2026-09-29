@@ -6,7 +6,7 @@ import { QuickActionSheet, type CourtSuggestion } from "@/components/QuickAction
 import { Sidebar } from "@/components/Sidebar/Sidebar";
 import { TabBar } from "@/components/TabBar/TabBar";
 import { Topbar } from "@/components/Topbar/Topbar";
-import type { Club, CurrentUser, NavItem, NavSection, QuickAction, TabItem } from "@/lib/types";
+import type { Club, CurrentUser, NavItem, NavSection, QuickAction, TabItem, Weather } from "@/lib/types";
 import styles from "./AppShell.module.css";
 
 const SIDEBAR_ID = "sidebar";
@@ -22,6 +22,7 @@ interface AppShellProps {
   quickActions: QuickAction[];
   sheetMeta: string;
   suggestion?: CourtSuggestion;
+  weather: Weather | null;
   children: ReactNode;
 }
 
@@ -65,8 +66,8 @@ export function AppShell(props: AppShellProps) {
       />
 
       <div className={styles.main}>
-        <Topbar unreadNotifications={props.unreadNotifications} />
-        <MobileBar club={props.club} unreadNotifications={props.unreadNotifications} />
+        <Topbar unreadNotifications={props.unreadNotifications} weather={props.weather} />
+        <MobileBar club={props.club} unreadNotifications={props.unreadNotifications} weather={props.weather} />
         <main className={styles.content}>{props.children}</main>
       </div>
 

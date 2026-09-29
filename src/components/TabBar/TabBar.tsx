@@ -1,5 +1,8 @@
 import { Menu, Plus } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import type { RefObject } from "react";
+import { isCurrent } from "@/components/Sidebar/Sidebar";
 import { Icon } from "@/components/Icon/Icon";
 import type { TabItem } from "@/lib/types";
 import styles from "./TabBar.module.css";
@@ -17,13 +20,14 @@ interface TabBarProps {
 }
 
 function Tab({ tab }: { tab: TabItem }) {
+  const pathname = usePathname();
   return (
-    <a className={styles.tab} href={tab.href} aria-current={tab.current ? "page" : undefined}>
+    <Link className={styles.tab} href={tab.href} aria-current={isCurrent(pathname, tab.href) ? "page" : undefined}>
       <span className={styles.tabIcon}>
         <Icon name={tab.icon} />
       </span>
       {tab.label}
-    </a>
+    </Link>
   );
 }
 

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { toTime } from "@/lib/format";
 import type { AvatarTone, Coach, CoachState } from "@/lib/types";
 import styles from "./CoachRow.module.css";
@@ -50,13 +51,13 @@ export function CoachRow({ coach, state }: CoachRowProps) {
       </span>
       <div className={styles.info}>
         <span className={`${styles.name} ellipsis`}>
-          {coach.name}
+          <Link className={styles.nameLink} href={`/antrenorler/${coach.id}`}>{coach.name}</Link>
           {coach.role && <span className={styles.role}> · {coach.role}</span>}
         </span>
         <span className={styles.where}>{whereText(state)}</span>
       </div>
       <div className={styles.load}>
-        {off ? (
+        {off || coach.lessonsTotal === 0 ? (
           <span>—</span>
         ) : (
           <>

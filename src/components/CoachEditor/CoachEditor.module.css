@@ -1,0 +1,8 @@
+.hours { display: flex; flex-direction: column; gap: 6px; }
+.hours li { display: grid; grid-template-columns: 130px minmax(0, 120px) auto minmax(0, 120px); align-items: center; gap: 10px; }
+.hours .input { min-height: 40px; }
+.off { color: var(--text-2); }
+
+@media (max-width: 767px) {
+  .hours li { grid-template-columns: 110px minmax(0, 1fr) auto minmax(0, 1fr); gap: 6px; }
+}

@@ -1,4 +1,5 @@
 import { ChevronRight } from "lucide-react";
+import Link from "next/link";
 import { Icon } from "@/components/Icon/Icon";
 import type { Alert } from "@/lib/types";
 import styles from "./AlertItem.module.css";
@@ -13,7 +14,7 @@ const TONE_CLASS: Record<Alert["tone"], string> = {
 export function AlertItem({ alert }: { alert: Alert }) {
   return (
     <li>
-      <a className={styles.alert} href={alert.href}>
+      <Link className={styles.alert} href={alert.href}>
         <span className={`${styles.icon} ${TONE_CLASS[alert.tone]}`}>
           <Icon name={alert.icon} />
         </span>
@@ -23,7 +24,7 @@ export function AlertItem({ alert }: { alert: Alert }) {
         </span>
         <span className={styles.action}>{alert.action}</span>
         <ChevronRight className={`icon ${styles.chev}`} aria-hidden="true" />
-      </a>
+      </Link>
     </li>
   );
 }

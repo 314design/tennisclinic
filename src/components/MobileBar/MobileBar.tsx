@@ -1,14 +1,17 @@
 import { Bell, ChevronDown, Search } from "lucide-react";
+import Link from "next/link";
 import { BrandMark } from "@/components/BrandMark/BrandMark";
-import type { Club } from "@/lib/types";
+import { WeatherWidget } from "@/components/WeatherWidget/WeatherWidget";
+import type { Club, Weather } from "@/lib/types";
 import styles from "./MobileBar.module.css";
 
 interface MobileBarProps {
   club: Club;
   unreadNotifications: number;
+  weather: Weather | null;
 }
 
-export function MobileBar({ club, unreadNotifications }: MobileBarProps) {
+export function MobileBar({ club, unreadNotifications, weather }: MobileBarProps) {
   return (
     <header className={styles.bar}>
       <BrandMark className={styles.mark} />
@@ -18,9 +21,10 @@ export function MobileBar({ club, unreadNotifications }: MobileBarProps) {
           {club.branch} <ChevronDown className="icon icon--sm" aria-hidden="true" />
         </span>
       </button>
-      <button className={`icon-btn ${styles.iconBtn}`} type="button" aria-label="Ara">
+      <WeatherWidget weather={weather} compact />
+      <Link className={`icon-btn ${styles.iconBtn}`} href="/uyeler" aria-label="Ara">
         <Search className="icon" aria-hidden="true" />
-      </button>
+      </Link>
       <button className={`icon-btn ${styles.iconBtn}`} type="button" aria-label={`Bildirimler, ${unreadNotifications} yeni`}>
         <Bell className="icon" aria-hidden="true" />
         {unreadNotifications > 0 && <span className="icon-btn__dot" />}

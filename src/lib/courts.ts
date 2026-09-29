@@ -152,3 +152,13 @@ export function countCourts(statuses: CourtStatus[]): CourtCounts {
     maint: statuses.filter((s) => s === "maint").length,
   };
 }
+
+/** Kort ortamı etiketi: Açık · Kapalı · Balon */
+export function environmentLabel(court: { environment: "outdoor" | "indoor"; balloon: boolean }): string {
+  if (court.environment === "indoor") return "Kapalı";
+  return court.balloon ? "Balon" : "Açık";
+}
+
+/** Yağmurdan etkilenen kort: balonla kapatılmamış açık kort */
+export const isOpenAir = (court: { environment: "outdoor" | "indoor"; balloon: boolean }) =>
+  court.environment === "outdoor" && !court.balloon;

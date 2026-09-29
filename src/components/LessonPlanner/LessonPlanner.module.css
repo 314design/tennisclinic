@@ -1,0 +1,33 @@
+.controls { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 16px 28px; }
+.coachField { flex: 1 1 240px; max-width: 360px; }
+.planner { display: flex; flex-direction: column; gap: 20px; }
+.fieldset { min-width: 0; margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 8px; }
+.hours { margin-top: 14px; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-size: 13px; color: var(--text-2); }
+.hours :global(.icon) { width: 16px; height: 16px; color: var(--primary); }
+
+.days { margin-top: 16px; display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; }
+.day { flex: 0 0 72px; display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 8px 4px; border: 1px solid var(--line-control); border-radius: var(--r-md); background: var(--surface); }
+.day span { font-size: 12px; font-weight: 700; color: var(--text-2); text-transform: capitalize; }
+.day strong { font-size: 20px; font-weight: 800; }
+.day em { font-style: normal; font-size: 11.5px; font-weight: 700; color: var(--primary); }
+.day[aria-selected="true"] { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
+.day[aria-selected="true"] span, .day[aria-selected="true"] em { color: var(--accent-soft); }
+.day:disabled { opacity: .45; cursor: not-allowed; }
+.day:disabled em { color: var(--text-2); }
+
+.slotArea { margin-top: 18px; }
+.dayTitle { font-size: 14px; font-weight: 800; }
+.slots { margin-top: 10px; display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; }
+.slot { display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 8px 4px; border: 1px solid var(--line-control); border-radius: var(--r-sm); background: var(--surface); }
+.slot strong { font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.slot span { font-size: 11.5px; font-weight: 600; color: var(--text-2); }
+.slot:hover { border-color: var(--primary); }
+.slotWarn { border-style: dashed; border-color: var(--warn-border); }
+.slot[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); border-style: solid; color: var(--on-accent); }
+.slot[aria-pressed="true"] span { color: var(--on-accent); }
+
+.formGrid { margin-top: 16px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+
+@media (max-width: 1023px) {
+  .formGrid { grid-template-columns: minmax(0, 1fr); }
+}

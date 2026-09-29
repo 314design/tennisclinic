@@ -1,4 +1,5 @@
 import { Check, Plus, Timer, Wrench } from "lucide-react";
+import Link from "next/link";
 import { Icon } from "@/components/Icon/Icon";
 import { BOOKING_KIND, type CourtView } from "@/lib/courts";
 import styles from "./CourtTile.module.css";
@@ -7,6 +8,7 @@ interface CourtTileProps {
   name: string;
   surface: string;
   view: CourtView;
+  reserveHref: string;
 }
 
 const STATUS_CLASS = {
@@ -63,7 +65,7 @@ function CourtType({ view }: { view: CourtView }) {
   );
 }
 
-export function CourtTile({ name, surface, view }: CourtTileProps) {
+export function CourtTile({ name, surface, view, reserveHref }: CourtTileProps) {
   const warn = view.status === "overtime";
   return (
     <article className={`${styles.court} ${STATUS_CLASS[view.status]}`}>
@@ -81,10 +83,10 @@ export function CourtTile({ name, surface, view }: CourtTileProps) {
         <p className={`${styles.sub} ellipsis`}>{view.sub}</p>
         <div className={styles.foot}>
           {view.status === "free" ? (
-            <button className="btn btn--sm btn--accent btn--block" type="button">
+            <Link className="btn btn--sm btn--accent btn--block" href={reserveHref}>
               <Plus className="icon icon--sm" aria-hidden="true" />
               Rezervasyon yap
-            </button>
+            </Link>
           ) : (
             <>
               <div className={`${styles.progress} ${PROGRESS_CLASS[view.status]}`}>

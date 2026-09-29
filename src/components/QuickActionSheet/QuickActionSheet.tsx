@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronRight, Plus, X } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useRef } from "react";
 import { Icon } from "@/components/Icon/Icon";
 import type { QuickAction } from "@/lib/types";
@@ -12,6 +13,8 @@ export interface CourtSuggestion {
   /** "18:00'e kadar boş" */
   freeText: string;
   freeMinutes?: number;
+  /** Rezervasyon formu, kort ve saat seçili */
+  href: string;
 }
 
 interface QuickActionSheetProps {
@@ -61,16 +64,16 @@ export function QuickActionSheet({ id, open, onClose, meta, suggestion, actions 
               {suggestion.freeMinutes !== undefined && ` · ${suggestion.freeMinutes} dk`}
             </span>
           </div>
-          <button className="btn btn--primary" type="button">
+          <Link className="btn btn--primary" href={suggestion.href} onClick={onClose}>
             <Plus className="icon icon--sm" aria-hidden="true" />
             Hemen ayır
-          </button>
+          </Link>
         </div>
       )}
 
       <div className={styles.actions}>
         {actions.map((a) => (
-          <a key={a.id} className={styles.action} href={a.href}>
+          <Link key={a.id} className={styles.action} href={a.href} onClick={onClose}>
             <span className={`${styles.actionIcon} ${TONE_CLASS[a.tone]}`}>
               <Icon name={a.icon} />
             </span>
@@ -79,7 +82,7 @@ export function QuickActionSheet({ id, open, onClose, meta, suggestion, actions 
               {a.description}
             </span>
             <ChevronRight className={`icon ${styles.chev}`} aria-hidden="true" />
-          </a>
+          </Link>
         ))}
       </div>
     </section>

@@ -1,4 +1,4 @@
-/** Uygulamadaki tüm ekran verilerinin tipleri. Gerçek veriler API'den bu biçimde gelecek. */
+/** Ekran bileşenlerinin kullandığı görünüm tipleri. Veriler `src/server/queries` içinde veritabanından üretilir. */
 
 export type IconName =
   | "house"
@@ -20,7 +20,7 @@ export type IconName =
   | "plus"
   | "menu";
 
-/** Saat "HH:MM" biçiminde tutulur; `now` ile karşılaştırılarak hesaplanır. */
+/** Saat "HH:MM" biçiminde tutulur */
 export type ClockTime = string;
 
 export interface Now {
@@ -46,8 +46,7 @@ export interface NavItem {
   label: string;
   href: string;
   icon: IconName;
-  current?: boolean;
-  /** Gri sayaç (ör. rezervasyon sayısı) */
+  /** Gri sayaç (ör. bugünkü rezervasyon) */
   count?: number;
   /** Vurgulu rozet (ör. bekleyen ödeme) */
   badge?: { value: number; label: string };
@@ -62,30 +61,32 @@ export interface TabItem {
   label: string;
   href: string;
   icon: IconName;
-  current?: boolean;
 }
 
 /* ---------- Kortlar ---------- */
 
 export type BookingKind = "private" | "reservation" | "group";
+export type CourtEnvironment = "outdoor" | "indoor";
 
 export interface CourtBooking {
+  id: number;
   kind: BookingKind;
   start: ClockTime;
   end: ClockTime;
-  /** Özel ders: öğrenci · Rezervasyon: rezervasyon sahipleri */
+  /** Özel ders: öğrenci · Rezervasyon: oyuncular */
   members?: string[];
   coach?: string;
-  /** Rezervasyonlarda oyun biçimi */
   format?: "singles" | "doubles";
   groupName?: string;
   groupSize?: number;
 }
 
 export interface Court {
-  id: string;
+  id: number;
   name: string;
   surface: string;
+  environment: CourtEnvironment;
+  balloon: boolean;
   /** Kortu şu an kullanan (henüz boşaltılmamış) seans */
   occupant?: CourtBooking;
   /** Kortta başlayacak bir sonraki seans */
@@ -97,35 +98,25 @@ export type CourtStatus = "busy" | "free" | "maint" | "overtime";
 
 /* ---------- Seanslar ---------- */
 
-export type SessionStatus =
-  | { type: "pending" }
-  | { type: "arrived" }
-  | { type: "partial"; arrived: number; total: number }
-  | { type: "unpaid" };
-
 export type AvatarTone = "default" | "lime" | "deep" | "off";
 
 export interface Session {
-  id: string;
+  id: number;
   start: ClockTime;
   end: ClockTime;
-  courtId: string;
+  courtId: number;
   kind: BookingKind;
   /** Üye adı ya da grup adı */
   name: string;
   initials?: string;
   avatarTone?: AvatarTone;
-  /** "Premium üye", "4 kişi" gibi ikinci satır */
+  /** "Premium üye", "4/6 kişi · Orta" gibi ikinci satır */
   memberLine: string;
   coach?: string;
   format?: "singles" | "doubles";
-  status: SessionStatus;
-}
-
-export interface SessionsSummary {
-  windowLabel: string;
-  remainingReservations: number;
-  remainingLessons: number;
+  state: "scheduled" | "in_progress";
+  paid: boolean;
+  memberCount: number;
 }
 
 /* ---------- Uyarılar & hareketler ---------- */
@@ -143,7 +134,7 @@ export interface Alert {
 }
 
 export interface Activity {
-  id: string;
+  id: number;
   name: string;
   text: string;
   /** ISO tarih-saat */
@@ -156,15 +147,9 @@ export interface Activity {
 /** Metin parçası; `desktopOnly` olanlar mobilde gizlenir. */
 export type TextPart = string | { text: string; desktopOnly: true };
 
-export interface KpiData {
-  id: string;
-  label: string;
-  value: string;
-  aside?: string;
-  delta: string;
-  note: TextPart[];
-  /** Son haftaların aynı gün değerleri (bugün sonda) */
-  trend?: number[];
+export interface Delta {
+  text: string;
+  direction: "up" | "down" | "flat";
 }
 
 export type SeriesUnit = "currency" | "percent";
@@ -176,7 +161,7 @@ export interface ChartSeries {
   unit: SeriesUnit;
   /** Toplam yerine ortalama gösterilir */
   summary: "sum" | "average";
-  delta: string;
+  delta: Delta;
   max: number;
   values: number[];
 }
@@ -195,14 +180,13 @@ export interface RevenueData {
 /* ---------- Antrenörler ---------- */
 
 export interface Coach {
-  id: string;
+  id: number;
   name: string;
   initials: string;
   role?: string;
   avatarTone: AvatarTone;
   lessonsDone: number;
   lessonsTotal: number;
-  onLeave?: boolean;
 }
 
 export type CoachState =
@@ -219,4 +203,22 @@ export interface QuickAction {
   icon: IconName;
   tone: "primary" | "lime" | "sage" | "warn";
   href: string;
+}
+
+/* ---------- Hava durumu ---------- */
+
+export interface WeatherHour {
+  time: ClockTime;
+  temperature: number;
+  code: number;
+  isDay: boolean;
+  precipitationProbability: number;
+}
+
+export interface Weather {
+  location: string;
+  current: { temperature: number; code: number; isDay: boolean; description: string };
+  hours: WeatherHour[];
+  /** Yarın için en yüksek yağış olasılığı (%) */
+  tomorrowPrecipitation: number;
 }

@@ -1,7 +1,7 @@
 "use client";
 
-import { ArrowUpRight } from "lucide-react";
 import { useState, type CSSProperties } from "react";
+import { DeltaBadge } from "@/components/DeltaBadge/DeltaBadge";
 import { formatTick, formatValue } from "@/lib/format";
 import type { ChartSeries, ClockTime, RevenueData } from "@/lib/types";
 import styles from "./RevenueChart.module.css";
@@ -47,10 +47,7 @@ export function RevenueChart({ data, time }: RevenueChartProps) {
 
       <div className={styles.summary}>
         <span className={styles.total}>{summaryOf(series)}</span>
-        <span className="delta">
-          <ArrowUpRight className="icon icon--xs" aria-hidden="true" />
-          <span>{series.delta}</span>
-        </span>
+        <DeltaBadge delta={series.delta} />
         <span className={styles.compare}>önceki 7 güne göre</span>
       </div>
 

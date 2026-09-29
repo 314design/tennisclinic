@@ -101,3 +101,28 @@ export function formatRelative(iso: string, now: Now): string {
   if (diff < 1440) return `${Math.floor(diff / 60)} sa önce`;
   return `${Math.floor(diff / 1440)} gün önce`;
 }
+
+/** "Bugün", "Yarın" ya da "Çarşamba, 1 Ekim" */
+export function formatDayLabel(iso: string, today?: string): string {
+  if (today) {
+    const diff = Math.round((dateOf(iso).getTime() - dateOf(today).getTime()) / 86_400_000);
+    if (diff === 0) return "Bugün";
+    if (diff === 1) return "Yarın";
+    if (diff === -1) return "Dün";
+  }
+  return new Intl.DateTimeFormat("tr-TR", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }).format(dateOf(iso));
+}
+
+/** "30.09.2026" */
+export function formatShortDate(iso: string): string {
+  return `${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(0, 4)}`;
+}
+
+/** Kısa gün adı: "Çar 30" */
+export function formatDayChip(iso: string): { weekday: string; day: string } {
+  const d = dateOf(iso);
+  return {
+    weekday: new Intl.DateTimeFormat("tr-TR", { weekday: "short", timeZone: "UTC" }).format(d),
+    day: String(d.getUTCDate()),
+  };
+}

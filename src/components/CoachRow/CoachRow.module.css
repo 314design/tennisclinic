@@ -3,6 +3,8 @@
 .avatar { grid-area: avatar; }
 .info { grid-area: info; min-width: 0; display: flex; flex-direction: column; }
 .name { font-size: 14.5px; font-weight: 700; }
+.nameLink { color: inherit; }
+.nameLink:hover { color: var(--primary); }
 .role { font-size: 12.5px; font-weight: 600; color: var(--text-2); }
 .where { font-size: 12.5px; color: var(--text-2); }
 .load { grid-area: load; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; font-size: 12.5px; font-weight: 700; }
