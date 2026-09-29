@@ -49,6 +49,8 @@ Hava durumu [Open-Meteo](https://open-meteo.com)'dan (anahtar gerektirmez) Ayarl
   grup dersi kişi başı — ders hakkı olanlar hakkından düşer). Takvim ve antrenör takviminde boş saate tıklayarak da açılır.
 - **Üyelik süresi:** üye başlangıç tarihi + ders kotası; bitiş, kotanın geçerlilik süresine göre (Fiyatlar ekranı) hesaplanır.
 - **Ders aktarma:** izinli antrenörün dersleri uyarı olarak görünür; başka hocanın müsait gün/saatine aktarılır.
+- **Yedek ve Excel:** Ayarlar'da tam yedek (`/api/yedek`, JSON) ve seçilen tarih aralığı için Excel özet raporu
+  (`/api/rapor`; Özet, Seanslar, Ödemeler, Paketler, Üyeler sayfaları). Raporlar ekranında da Excel düğmesi var.
 - **Kortlar:** 2 açık + 1 kapalı kort; açık kort kış için "Balon Kort" yapılabilir (yağmur uyarısı dışında kalır),
   bakım takvimi.
 - **Üyeler** (ders/telafi hakkı, paket, üyelik bitişi, hak hareketleri), **Antrenörler** (haftalık saatler, izin),

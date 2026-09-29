@@ -78,7 +78,7 @@ export async function bookingsOn(date: string): Promise<BookingRow[]> {
 export const overlaps = (aStart: string, aEnd: string, bStart: string, bEnd: string) =>
   toMinutes(aStart) < toMinutes(bEnd) && toMinutes(bStart) < toMinutes(aEnd);
 
-export const KIND_LABEL = { private: "Özel ders", group: "Grup dersi", reservation: "Rezervasyon" } as const;
+export const KIND_LABEL = { private: "Özel ders", group: "Grup dersi", reservation: "Kort kiralama" } as const;
 export const TIER_LABEL = { premium: "Premium üye", standard: "Standart üye" } as const;
 export const LEVELS = ["Başlangıç", "Orta", "İleri", "Junior", "Performans"] as const;
 export const MAX_GROUP_SIZE = 6;
