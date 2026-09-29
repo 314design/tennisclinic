@@ -11,6 +11,8 @@ const urbanist = Urbanist({
 export const metadata: Metadata = {
   title: "Genel Bakış · Tennis Clinic",
   description: "Tennis Clinic kulüp yönetim paneli",
+  // Yönetim paneli arama motorlarında listelenmez
+  robots: { index: false, follow: false, nocache: true },
 };
 
 export const viewport: Viewport = {
