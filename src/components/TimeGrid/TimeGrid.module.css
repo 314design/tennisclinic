@@ -34,6 +34,10 @@ a.reservation:hover { border-color: var(--ev-rental-ink); color: var(--ev-rental
 .ghostOk { background: var(--ev-pick-ok); border: 1px dashed var(--primary); color: var(--primary); }
 .ghostBad { background: var(--ev-pick-bad); border: 1px dashed var(--danger); color: var(--danger-ink); }
 .selected { background: var(--accent); border: 2px solid var(--primary); color: var(--on-accent); z-index: 2; }
+.movable { cursor: grab; touch-action: pan-y; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.movable:active { cursor: grabbing; }
+.dragging { opacity: .35; }
+.dropGhost { z-index: 4; justify-content: flex-start; background: var(--accent); border: 2px solid var(--primary); color: var(--on-accent); box-shadow: 0 6px 18px rgb(0 0 0 / .18); }
 
 .now { position: absolute; left: 0; right: 0; z-index: 3; height: 2px; background: var(--danger); pointer-events: none; }
 .now::before { content: ""; position: absolute; left: -4px; top: -3px; width: 8px; height: 8px; border-radius: 50%; background: var(--danger); }

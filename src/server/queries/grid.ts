@@ -1,10 +1,12 @@
 import "server-only";
 import type { GridEvent } from "@/components/TimeGrid/TimeGrid";
 import { usesHalfCourt } from "@/lib/pricing";
+import { toMinutes } from "@/lib/format";
+import type { Now } from "@/lib/types";
 import type { BookingDetail } from "./common";
 
 /** Seansları takvim ızgarası etkinliklerine çevirir; sütun kimliği çağıran tarafından belirlenir */
-export function toGridEvents(bookings: BookingDetail[], columnOf: (b: BookingDetail) => string, opts: { showCourt?: boolean } = {}): GridEvent[] {
+export function toGridEvents(bookings: BookingDetail[], columnOf: (b: BookingDetail) => string, opts: { showCourt?: boolean; /** Verilirse planlanmış, gelecekteki seanslar sürüklenebilir işaretlenir */ movableAfter?: Now } = {}): GridEvent[] {
   return bookings.map((b) => {
     const title = b.kind === "group" ? (b.title ?? "Grup dersi") : b.members.map((m) => m.name).join(", ") || "Rezervasyon";
     const parts = [
@@ -26,6 +28,11 @@ export function toGridEvents(bookings: BookingDetail[], columnOf: (b: BookingDet
       live: b.status === "in_progress",
       unpaid: !b.paid && b.price > 0,
       half: usesHalfCourt({ kind: b.kind, exclusive: b.exclusive, memberCount: b.members.length }),
+      series: !!b.seriesId,
+      draggable:
+        !!opts.movableAfter &&
+        b.status === "scheduled" &&
+        (b.date > opts.movableAfter.date || (b.date === opts.movableAfter.date && toMinutes(b.start) > toMinutes(opts.movableAfter.time))),
     };
   });
 }
