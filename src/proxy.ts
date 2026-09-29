@@ -22,10 +22,10 @@ export function proxy(request: NextRequest) {
   }
   return new NextResponse("Giriş gerekli", {
     status: 401,
-    headers: { "WWW-Authenticate": 'Basic realm="Tennis Clinic", charset="UTF-8"' },
+    headers: { "WWW-Authenticate": 'Basic realm="Tennis Clinic", charset="UTF-8"', "X-Robots-Tag": "noindex, nofollow" },
   });
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|robots.txt).*)"],
 };

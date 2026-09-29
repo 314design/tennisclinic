@@ -19,7 +19,7 @@ import type {
 import { getDb } from "@/server/db/client";
 import * as s from "@/server/db/schema";
 import { bookingsOn, getSettings, TIER_LABEL, withDetails, type BookingDetail } from "./common";
-import { getPackages } from "./planning";
+import { getOpenLessons, getPackages } from "./planning";
 
 const DAY_SHORT = ["Paz", "Pzt", "Sal", "Çar", "Per", "Cum", "Cmt"];
 const DAY_LONG = ["Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"];
@@ -285,6 +285,16 @@ export async function getDashboard(now: Now, weather: Weather | null) {
         });
       }
     }
+  }
+
+  const open = await getOpenLessons(now);
+  if (open.length) {
+    const names = [...new Set(open.map((l) => l.coachName))];
+    alerts.unshift({
+      id: "open-lessons", tone: "warn", icon: "whistle", href: `/antrenorler/${open[0].coachId}`, action: "Aktar",
+      title: `${open.length} ders hocasız kaldı`,
+      detail: `${names.join(", ")} izinli · ilk ders ${open[0].date === today ? "bugün" : open[0].date.slice(8) + "." + open[0].date.slice(5, 7)} ${open[0].start}`,
+    });
   }
 
   /* ---------- Son hareketler ---------- */

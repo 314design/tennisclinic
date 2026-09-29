@@ -2,7 +2,9 @@ import { asc, eq } from "drizzle-orm";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import Link from "next/link";
 import { DateJump } from "@/components/DateJump/DateJump";
-import { DayCalendar } from "@/components/DayCalendar/DayCalendar";
+import { GridLegend, TimeGrid } from "@/components/TimeGrid/TimeGrid";
+import { environmentLabel } from "@/lib/courts";
+import { blockEvents, toGridEvents } from "@/server/queries/grid";
 import { addDays, clubNow } from "@/lib/clock";
 import { formatDayLabel, formatShortDate } from "@/lib/format";
 import { getDb } from "@/server/db/client";
@@ -53,20 +55,15 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
       </header>
 
       <section className="card">
-        <ul className="calendar-legend">
-          <li><i className="lg-group" />Grup dersi</li>
-          <li><i className="lg-private" />Özel ders</li>
-          <li><i className="lg-res" />Kiralama</li>
-          <li><i className="lg-unpaid" />Ödenmedi</li>
-          <li><i className="lg-block" />Bakım</li>
-        </ul>
-        <DayCalendar
+        <GridLegend />
+        <p className="field__hint" style={{ marginBottom: 10 }}>Boş bir saate tıklayarak o kort ve saat için rezervasyon oluşturabilirsiniz.</p>
+        <TimeGrid
           open={settings.hours.open}
           close={settings.hours.close}
-          courts={courts}
-          bookings={bookings}
-          blocks={blocks}
+          columns={courts.map((c) => ({ id: String(c.id), title: c.name, subtitle: environmentLabel(c), now: date === now.date }))}
+          events={[...toGridEvents(bookings, (b) => String(b.courtId)), ...blockEvents(blocks, (id) => String(id))]}
           nowTime={date === now.date ? now.time : undefined}
+          emptyHref={`/rezervasyonlar/yeni?tarih=${date}&kort={col}&saat={time}`}
         />
       </section>
     </>

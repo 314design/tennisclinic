@@ -7,7 +7,8 @@ import { clubNow } from "@/lib/clock";
 import { environmentLabel, FORMAT_LABEL } from "@/lib/courts";
 import { formatCurrency, formatDayLabel, formatShortDate } from "@/lib/format";
 import { KIND_LABEL, TIER_LABEL } from "@/server/queries/common";
-import { getBookingDetail, getMemberOptions, getPackages } from "@/server/queries/planning";
+import { getBookingDetail, getCoachOptions, getMemberOptions, getPackages } from "@/server/queries/planning";
+import { TransferButton } from "@/components/TransferDialog/TransferDialog";
 
 const STATUS = {
   scheduled: { label: "Planlandı", chip: "chip--outline" },
@@ -20,7 +21,7 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
   const { id } = await params;
   const b = await getBookingDetail(Number(id));
   if (!b) notFound();
-  const members = await getMemberOptions();
+  const [members, coaches] = await Promise.all([getMemberOptions(), getCoachOptions()]);
   const pkg = b.packageId ? (await getPackages({ activeOnly: false })).find((p) => p.id === b.packageId) : undefined;
   const now = clubNow();
   const title = b.kind === "group" ? (b.title ?? "Grup dersi") : b.members.map((m) => m.name).join(", ") || KIND_LABEL[b.kind];
@@ -42,6 +43,15 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
             {b.coach ? ` · Ant. ${b.coach.name}` : ""}
           </p>
         </div>
+        <div className="page-header__actions">
+        {b.kind !== "reservation" && b.status === "scheduled" && b.coach && (
+          <TransferButton
+            label="Hocayı değiştir"
+            today={now.date}
+            coaches={coaches}
+            target={{ id: b.id, label: `${title} · ${b.start}–${b.end}`, date: b.date, start: b.start, end: b.end, coachId: b.coach.id, coachName: b.coach.name }}
+          />
+        )}
         <SessionActions
           id={b.id}
           kind={b.kind}
@@ -53,6 +63,7 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
           capacity={capacity}
           members={members}
         />
+        </div>
       </header>
 
       <div className="two-col">

@@ -26,7 +26,7 @@ export type CoachRow = typeof s.coaches.$inferSelect;
 export type CourtRow = typeof s.courts.$inferSelect;
 
 export interface BookingDetail extends BookingRow {
-  members: (Pick<MemberRow, "id" | "name" | "initials" | "tier" | "lessonCredits" | "makeupCredits"> & { arrived: boolean; usedMakeup: boolean })[];
+  members: (Pick<MemberRow, "id" | "name" | "initials" | "tier" | "lessonCredits" | "makeupCredits"> & { arrived: boolean; usedMakeup: boolean; charged: boolean })[];
   coach: Pick<CoachRow, "id" | "name"> | null;
   court: Pick<CourtRow, "id" | "name" | "surface" | "environment" | "balloon">;
 }
@@ -42,6 +42,7 @@ export async function withDetails(rows: BookingRow[]): Promise<BookingDetail[]> 
         bookingId: s.bookingMembers.bookingId,
         arrived: s.bookingMembers.arrived,
         usedMakeup: s.bookingMembers.usedMakeup,
+        charged: s.bookingMembers.charged,
         id: s.members.id,
         name: s.members.name,
         initials: s.members.initials,
@@ -77,7 +78,7 @@ export async function bookingsOn(date: string): Promise<BookingRow[]> {
 export const overlaps = (aStart: string, aEnd: string, bStart: string, bEnd: string) =>
   toMinutes(aStart) < toMinutes(bEnd) && toMinutes(bStart) < toMinutes(aEnd);
 
-export const KIND_LABEL = { private: "Özel ders", group: "Grup dersi", reservation: "Rezervasyon" } as const;
+export const KIND_LABEL = { private: "Özel ders", group: "Grup dersi", reservation: "Kort kiralama" } as const;
 export const TIER_LABEL = { premium: "Premium üye", standard: "Standart üye" } as const;
 export const LEVELS = ["Başlangıç", "Orta", "İleri", "Junior", "Performans"] as const;
 export const MAX_GROUP_SIZE = 6;

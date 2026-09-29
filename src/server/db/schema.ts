@@ -56,6 +56,8 @@ export const members = pgTable("members", {
   phone: text("phone"),
   tier: text("tier").notNull().default("standard").$type<"premium" | "standard">(),
   level: text("level"),
+  /** Üyelik başlangıcı; bitiş tarihi ders kotasının geçerlilik süresine göre hesaplanır */
+  membershipStart: text("membership_start"),
   membershipEnd: text("membership_end"),
   /** Paketten kalan ders hakkı */
   lessonCredits: integer("lesson_credits").notNull().default(0),
@@ -149,6 +151,8 @@ export const bookingMembers = pgTable(
     arrived: boolean("arrived").notNull().default(false),
     /** Ders hakkı telafi hakkından düşüldüyse true */
     usedMakeup: boolean("used_makeup").notNull().default(false),
+    /** Ders hakkı olmadığı için seans ücreti ayrıca alınır (grup dersi) */
+    charged: boolean("charged").notNull().default(false),
   },
   (t) => [primaryKey({ columns: [t.bookingId, t.memberId] })],
 );

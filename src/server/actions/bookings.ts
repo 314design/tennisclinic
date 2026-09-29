@@ -9,6 +9,8 @@ import { getDb, type Db } from "@/server/db/client";
 import * as s from "@/server/db/schema";
 import { KIND_LABEL, MAX_GROUP_SIZE, withDetails, type BookingDetail } from "@/server/queries/common";
 import { findConflicts, validTimeRange } from "@/server/scheduling";
+import { getPriceList } from "@/server/queries/pricing";
+import { bandFor, rentalPrice } from "@/lib/pricing";
 import { CANCEL_REASONS, type CancelReason } from "@/lib/booking";
 
 export type ActionResult<T = unknown> =
@@ -31,18 +33,40 @@ async function loadBooking(db: Db, id: number) {
   return detail;
 }
 
-/** Ders hakkı düş: telafi istendiyse ve varsa telafiden, yoksa paketten */
-export async function consumeCredit(db: Db, memberId: number, bookingId: number, preferMakeup: boolean) {
+/**
+ * Grup dersi hakkı düş: telafi istendiyse ve varsa telafiden, yoksa ders hakkından.
+ * Üyenin hakkı yoksa "charge" döner; seans ücreti (kişi başı) ayrıca alınır.
+ */
+export async function consumeCredit(db: Db, memberId: number, bookingId: number, preferMakeup: boolean): Promise<"makeup" | "lesson" | "charge"> {
   const [m] = await db.select().from(s.members).where(eq(s.members.id, memberId));
-  const useMakeup = preferMakeup && m.makeupCredits > 0;
-  if (useMakeup) {
+  if (preferMakeup && m.makeupCredits > 0) {
     await db.update(s.members).set({ makeupCredits: sql`${s.members.makeupCredits} - 1` }).where(eq(s.members.id, memberId));
     await db.insert(s.creditTransactions).values({ memberId, kind: "makeup_used", delta: -1, bookingId, note: "Telafi dersi" });
-  } else {
+    return "makeup";
+  }
+  if (m.lessonCredits > 0) {
     await db.update(s.members).set({ lessonCredits: sql`${s.members.lessonCredits} - 1` }).where(eq(s.members.id, memberId));
     await db.insert(s.creditTransactions).values({ memberId, kind: "lesson_used", delta: -1, bookingId });
+    return "lesson";
   }
-  return useMakeup;
+  return "charge";
+}
+
+/** Grup dersine üyeleri ekler; hakkı olmayanların seans ücretini derse yansıtır */
+async function addGroupMembers(db: Db, bookingId: number, memberIds: number[], preferMakeup: boolean, perPerson: number) {
+  let charged = 0;
+  for (const memberId of memberIds) {
+    const source = await consumeCredit(db, memberId, bookingId, preferMakeup);
+    await db.insert(s.bookingMembers).values({ bookingId, memberId, usedMakeup: source === "makeup", charged: source === "charge" });
+    if (source === "charge") charged++;
+  }
+  if (charged && perPerson) {
+    await db
+      .update(s.bookings)
+      .set({ price: sql`${s.bookings.price} + ${charged * perPerson}`, paid: false })
+      .where(eq(s.bookings.id, bookingId));
+  }
+  return charged;
 }
 
 async function cancelInternal(db: Db, booking: BookingDetail, reason: CancelReason, note: string | null, grantMakeup: boolean) {
@@ -141,8 +165,7 @@ const baseSchema = z.object({
   start: z.string(),
   end: z.string(),
   memberIds: z.array(z.number().int()).max(MAX_GROUP_SIZE),
-  price: z.number().int().min(0).default(0),
-  paid: z.boolean().default(true),
+  paid: z.boolean().default(false),
 });
 
 const lessonSchema = baseSchema.extend({
@@ -209,17 +232,13 @@ export async function createLesson(input: z.input<typeof lessonSchema>): Promise
       title: d.title?.trim() || `${d.level} grubu`,
       level: d.level,
       capacity,
-      price: d.price, paid: d.paid || d.price === 0,
+      price: 0, paid: true,
     })
     .returning();
 
-  for (const memberId of d.memberIds) {
-    const usedMakeup = await consumeCredit(db, memberId, row.id, d.useMakeup);
-    await db.insert(s.bookingMembers).values({ bookingId: row.id, memberId, usedMakeup });
-  }
-  if (d.paid && d.price > 0) {
-    await db.insert(s.payments).values({ memberId: d.memberIds[0], bookingId: row.id, amount: d.price, date: clubNow().date, description: KIND_LABEL[d.kind] });
-  }
+  // Ücret otomatik: ders hakkı olmayan öğrenciler için kişi başı grup dersi ücreti
+  const list = await getPriceList(d.date);
+  await addGroupMembers(db, row.id, d.memberIds, d.useMakeup, list.groupPerPerson);
   const [detail] = await withDetails([row]);
   await logActivity(db, bookingLabel(detail), `için ${KIND_LABEL[d.kind].toLocaleLowerCase("tr-TR")} planlandı · ${d.date.slice(8)}.${d.date.slice(5, 7)} ${d.start}`, { memberId: d.memberIds[0] });
   refresh();
@@ -239,13 +258,16 @@ export async function createReservation(input: z.input<typeof reservationSchema>
   const slot = await checkSlot(db, { kind: "reservation", courtId: d.courtId, date: d.date, start: d.start, end: d.end }, false);
   if (slot.error !== undefined) return { ok: false, error: slot.error };
 
+  // Ücret otomatik: saat bandına göre saatlik kiralama ücreti × süre
+  const list = await getPriceList(d.date);
+  const price = rentalPrice(list, bandFor(list, d.date, d.start, d.end), toMinutes(d.end) - toMinutes(d.start));
   const [row] = await db
     .insert(s.bookings)
-    .values({ kind: "reservation", courtId: d.courtId, date: d.date, start: d.start, end: d.end, format: d.format, price: d.price, paid: d.paid || d.price === 0 })
+    .values({ kind: "reservation", courtId: d.courtId, date: d.date, start: d.start, end: d.end, format: d.format, price, paid: d.paid || price === 0 })
     .returning();
   await db.insert(s.bookingMembers).values(d.memberIds.map((memberId) => ({ bookingId: row.id, memberId })));
-  if (d.paid && d.price > 0) {
-    await db.insert(s.payments).values({ memberId: d.memberIds[0], bookingId: row.id, amount: d.price, date: clubNow().date, description: "Kort kiralama" });
+  if (d.paid && price > 0) {
+    await db.insert(s.payments).values({ memberId: d.memberIds[0], bookingId: row.id, amount: price, date: clubNow().date, description: "Kort kiralama" });
   }
   refresh();
   return { ok: true, id: row.id };
@@ -258,13 +280,16 @@ export async function addMembersToBooking(input: { bookingId: number; memberIds:
   const b = await loadBooking(db, input.bookingId);
   if (!b || b.status === "cancelled" || b.status === "completed") return { ok: false, error: "Bu seansa üye eklenemez." };
   const fresh = input.memberIds.filter((id) => !b.members.some((m) => m.id === id));
-  const capacity = b.kind === "group" ? (b.capacity ?? MAX_GROUP_SIZE) : b.kind === "private" ? 1 : 4;
+  if (b.kind === "private") return { ok: false, error: "Özel derse öğrenci paketten eklenir; yeni ders oluşturun." };
+  const capacity = b.kind === "group" ? (b.capacity ?? MAX_GROUP_SIZE) : 4;
   if (b.members.length + fresh.length > capacity) {
     return { ok: false, error: `Kapasite dolu: en fazla ${capacity} kişi (${capacity - b.members.length} yer kaldı).` };
   }
-  for (const memberId of fresh) {
-    const usedMakeup = b.kind === "reservation" ? false : await consumeCredit(db, memberId, b.id, !!input.useMakeup);
-    await db.insert(s.bookingMembers).values({ bookingId: b.id, memberId, usedMakeup });
+  if (b.kind === "group") {
+    const list = await getPriceList(b.date);
+    await addGroupMembers(db, b.id, fresh, !!input.useMakeup, list.groupPerPerson);
+  } else if (fresh.length) {
+    await db.insert(s.bookingMembers).values(fresh.map((memberId) => ({ bookingId: b.id, memberId })));
   }
   refresh();
   return { ok: true };
@@ -276,7 +301,11 @@ export async function removeMemberFromBooking(input: { bookingId: number; member
   const m = b?.members.find((x) => x.id === input.memberId);
   if (!b || !m) return { ok: false, error: "Üye bu seansta değil." };
   await db.delete(s.bookingMembers).where(and(eq(s.bookingMembers.bookingId, b.id), eq(s.bookingMembers.memberId, m.id)));
-  if (input.refund && b.kind !== "reservation") {
+  if (m.charged) {
+    // Ayrıca ücretlendirilen öğrenci çıkınca ücreti dersten düşülür
+    const list = await getPriceList(b.date);
+    await db.update(s.bookings).set({ price: sql`greatest(${s.bookings.price} - ${list.groupPerPerson}, 0)` }).where(eq(s.bookings.id, b.id));
+  } else if (input.refund && b.kind === "group") {
     const column = m.usedMakeup ? s.members.makeupCredits : s.members.lessonCredits;
     await db.update(s.members).set({ [m.usedMakeup ? "makeupCredits" : "lessonCredits"]: sql`${column} + 1` }).where(eq(s.members.id, m.id));
     await db.insert(s.creditTransactions).values({

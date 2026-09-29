@@ -4,14 +4,23 @@ import { notFound } from "next/navigation";
 import { CoachInfoForm, HoursEditor } from "@/components/CoachEditor/CoachEditor";
 import { GroupLessons } from "@/components/LessonPlanner/GroupLessons";
 import { clubNow } from "@/lib/clock";
-import { getCoachGroups, getCoachOptions, getMemberOptions } from "@/server/queries/planning";
+import { CoachCalendar, mondayOf } from "./CoachCalendar";
+import { getCoachGroups, getCoachOptions, getMemberOptions, getOpenLessons } from "@/server/queries/planning";
+import { TransferButton } from "@/components/TransferDialog/TransferDialog";
+import { formatDayLabel, formatShortDate } from "@/lib/format";
 
-export default async function CoachPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function CoachPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ hafta?: string }> }) {
   const id = Number((await params).id);
+  const { hafta } = await searchParams;
   const now = clubNow();
   const coach = (await getCoachOptions()).find((c) => c.id === id);
   if (!coach) notFound();
-  const [groups, members] = await Promise.all([getCoachGroups(id, now), getMemberOptions()]);
+  const [groups, members, openLessons, allCoaches] = await Promise.all([
+    getCoachGroups(id, now),
+    getMemberOptions(),
+    getOpenLessons(now, id),
+    getCoachOptions(),
+  ]);
 
   return (
     <>
@@ -29,6 +38,44 @@ export default async function CoachPage({ params }: { params: Promise<{ id: stri
           </div>
         )}
       </header>
+
+      {openLessons.length > 0 && (
+        <section className="card" aria-labelledby="open-title">
+          <header className="card__head">
+            <div>
+              <h2 className="card__title" id="open-title">Açıkta kalan dersler</h2>
+              <p className="card__meta">{coach.name} izinli · {openLessons.length} ders başka hocaya aktarılmalı</p>
+            </div>
+          </header>
+          <div className="table-wrap" style={{ marginTop: 8 }}>
+            <table className="table">
+              <tbody>
+                {openLessons.map((l) => (
+                  <tr key={l.id}>
+                    <td className="nowrap"><strong>{formatDayLabel(l.date, now.date)}</strong><div className="muted">{formatShortDate(l.date)} · {l.start}–{l.end}</div></td>
+                    <td><Link className="row-link" href={`/seanslar/${l.id}`}>{l.title}</Link><div className="muted">{l.kind === "group" ? "Grup dersi" : "Özel ders"} · {l.courtName}</div></td>
+                    <td className="num">
+                      <TransferButton
+                        small
+                        today={now.date}
+                        coaches={allCoaches}
+                        target={{ id: l.id, label: `${l.title} · ${l.start}–${l.end}`, date: l.date, start: l.start, end: l.end, coachId: l.coachId, coachName: l.coachName }}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
+      <CoachCalendar
+        coach={coach}
+        week={mondayOf(hafta && /^\d{4}-\d{2}-\d{2}$/.test(hafta) ? hafta : now.date)}
+        today={now.date}
+        nowTime={now.time}
+      />
 
       <GroupLessons groups={groups} members={members} coachName={coach.name} today={now.date} />
 

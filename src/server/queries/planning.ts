@@ -54,12 +54,23 @@ export async function getCoachOptions(): Promise<CoachOption[]> {
  * Özel ders: yalnızca tamamen boş kortlar.
  * Grup dersi: boş kortlar + yalnızca özel ders/kiralama olan kortlar (grup önceliği; onayla iptal edilir).
  */
-export async function getAvailability(coach: CoachOption, kind: "private" | "group", duration: number, now: Now): Promise<PlanDay[]> {
+export async function getAvailability(
+  coach: CoachOption,
+  kind: "private" | "group",
+  duration: number,
+  now: Now,
+  /** Aktarılan dersin kendisi çakışma sayılmasın */
+  ignoreBookingId?: number,
+): Promise<PlanDay[]> {
   const db = await getDb();
   const to = addDays(now.date, PLAN_DAYS - 1);
   const [courts, bookings, blocks] = await Promise.all([
     db.select().from(s.courts).where(eq(s.courts.active, true)).orderBy(asc(s.courts.sortOrder)),
-    db.select().from(s.bookings).where(and(between(s.bookings.date, now.date, to), ne(s.bookings.status, "cancelled"))),
+    db
+      .select()
+      .from(s.bookings)
+      .where(and(between(s.bookings.date, now.date, to), ne(s.bookings.status, "cancelled")))
+      .then((rows) => rows.filter((b) => b.id !== ignoreBookingId)),
     db.select().from(s.courtBlocks).where(between(s.courtBlocks.date, now.date, to)),
   ]);
   // Kort paylaşımı için ders başına öğrenci sayısı
@@ -241,4 +252,44 @@ export async function getPackages(opts: { memberId?: number; activeOnly?: boolea
       };
     })
     .filter((p) => !opts.memberId || p.memberIds.includes(opts.memberId));
+}
+
+export interface OpenLesson {
+  id: number;
+  kind: "private" | "group";
+  date: string;
+  start: string;
+  end: string;
+  title: string;
+  courtName: string;
+  coachId: number;
+  coachName: string;
+  /** Kortu paylaşabilir mi (1 kişilik paylaşımlı özel ders) */
+  half: boolean;
+}
+
+/** İzinli antrenörlerin bugünden sonraki planlanmış dersleri (başka hocaya aktarılmayı bekleyen) */
+export async function getOpenLessons(now: Now, coachId?: number): Promise<OpenLesson[]> {
+  const db = await getDb();
+  const leave = await db.select().from(s.coaches).where(eq(s.coaches.onLeave, true));
+  const ids = leave.map((c) => c.id).filter((id) => !coachId || id === coachId);
+  if (!ids.length) return [];
+  const rows = await db
+    .select()
+    .from(s.bookings)
+    .where(and(inArray(s.bookings.coachId, ids), eq(s.bookings.status, "scheduled"), gte(s.bookings.date, now.date)))
+    .orderBy(asc(s.bookings.date), asc(s.bookings.start));
+  const detailed = (await withDetails(rows)).filter((b) => b.date > now.date || toMinutes(b.start) > toMinutes(now.time));
+  return detailed.map((b) => ({
+    id: b.id,
+    kind: b.kind as "private" | "group",
+    date: b.date,
+    start: b.start,
+    end: b.end,
+    title: b.kind === "group" ? (b.title ?? "Grup dersi") : b.members.map((m) => m.name).join(", "),
+    courtName: b.court.name,
+    coachId: b.coachId!,
+    coachName: b.coach?.name ?? "",
+    half: usesHalfCourt({ kind: b.kind, exclusive: b.exclusive, memberCount: b.members.length }),
+  }));
 }

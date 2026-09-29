@@ -1,4 +1,5 @@
 import { and, between, eq, gte, sql } from "drizzle-orm";
+import { FileSpreadsheet } from "lucide-react";
 import { RevenueChart } from "@/components/RevenueChart/RevenueChart";
 import { CANCEL_REASONS, type CancelReason } from "@/lib/booking";
 import { addDays, clubNow } from "@/lib/clock";
@@ -40,6 +41,11 @@ export default async function ReportsPage() {
         <div>
           <h1 className="page-header__title">Raporlar</h1>
           <p className="page-header__lede">Son 30 gün</p>
+        </div>
+        <div className="page-header__actions">
+          <a className="btn btn--primary" href={`/api/rapor?baslangic=${from}&bitis=${now.date}`} download>
+            <FileSpreadsheet className="icon" aria-hidden="true" /> Excel indir
+          </a>
         </div>
       </header>
       <div className="stat-row">

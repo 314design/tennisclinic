@@ -4,7 +4,10 @@ import { eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { clubNow } from "@/lib/clock";
+import { addDays, clubNow } from "@/lib/clock";
+import { groupLessonPrice, validityFor } from "@/lib/pricing";
+import { extendMembership } from "@/server/membership";
+import { getPriceList } from "@/server/queries/pricing";
 import { formatCurrency } from "@/lib/format";
 import { getDb } from "@/server/db/client";
 import * as s from "@/server/db/schema";
@@ -25,7 +28,7 @@ const memberSchema = z.object({
   phone: z.string().trim().max(30).optional(),
   tier: z.enum(["premium", "standard"]),
   level: z.string().trim().max(40).optional(),
-  membershipEnd: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().or(z.literal("")),
+  membershipStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Üyelik başlangıç tarihini seçin"),
 });
 
 const readMember = (fd: FormData) =>
@@ -34,22 +37,33 @@ const readMember = (fd: FormData) =>
     phone: fd.get("phone") || undefined,
     tier: fd.get("tier"),
     level: fd.get("level") || undefined,
-    membershipEnd: fd.get("membershipEnd") || "",
+    membershipStart: fd.get("membershipStart") || "",
   });
 
 export type FormState = { error?: string; saved?: boolean } | undefined;
 
+/**
+ * Yeni üye. Üyelik bitişi elle girilmez: ders kotası (grup dersi hakkı) seçildiyse
+ * başlangıç + kotanın geçerlilik süresi (Fiyatlar ekranı) olarak hesaplanır.
+ */
 export async function createMember(_: FormState, fd: FormData): Promise<FormState> {
   const parsed = readMember(fd);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Form bilgilerini kontrol edin." };
-  const credits = Math.max(0, Number(fd.get("lessonCredits") ?? 0) || 0);
+  const quota = [0, 8, 16].includes(Number(fd.get("quota"))) ? Number(fd.get("quota")) : 0;
+  const paid = fd.get("paid") === "on";
   const db = await getDb();
   const d = parsed.data;
+  const list = await getPriceList(d.membershipStart);
+  const days = validityFor(list, quota);
   const [row] = await db
     .insert(s.members)
-    .values({ ...d, membershipEnd: d.membershipEnd || null, initials: initialsOf(d.name), lessonCredits: credits })
+    .values({ ...d, membershipEnd: days ? addDays(d.membershipStart, days) : null, initials: initialsOf(d.name), lessonCredits: quota })
     .returning();
-  if (credits) await db.insert(s.creditTransactions).values({ memberId: row.id, kind: "lesson_added", delta: credits, note: "Kayıtta tanımlanan paket" });
+  if (quota) {
+    await db.insert(s.creditTransactions).values({ memberId: row.id, kind: "lesson_added", delta: quota, note: `${quota} seanslık ders kotası` });
+    const amount = groupLessonPrice(list, 1) * quota;
+    if (paid && amount) await db.insert(s.payments).values({ memberId: row.id, amount, date: clubNow().date, description: `${quota} seanslık ders kotası` });
+  }
   await db.insert(s.activities).values({ memberId: row.id, subject: row.name, text: "üye olarak kaydedildi" });
   revalidatePath("/", "layout");
   redirect(`/uyeler/${row.id}`);
@@ -60,38 +74,36 @@ export async function updateMember(id: number, _: FormState, fd: FormData): Prom
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Form bilgilerini kontrol edin." };
   const db = await getDb();
   const d = parsed.data;
-  await db.update(s.members).set({ ...d, membershipEnd: d.membershipEnd || null, initials: initialsOf(d.name) }).where(eq(s.members.id, id));
+  await db.update(s.members).set({ ...d, initials: initialsOf(d.name) }).where(eq(s.members.id, id));
   revalidatePath("/", "layout");
   return { saved: true };
 }
 
 const packageSchema = z.object({
   memberId: z.number().int(),
-  lessons: z.number().int().min(1).max(100),
-  amount: z.number().int().min(0),
-  extendDays: z.number().int().min(0).max(730),
+  lessons: z.union([z.literal(8), z.literal(16)]),
+  paid: z.boolean(),
 });
 
-/** Ders paketi satışı: ders hakkı ekler, ödeme kaydı oluşturur, isteğe bağlı üyelik süresini uzatır */
+/**
+ * Grup dersi kotası satışı: ders hakkı ekler; tutar kişi başı grup dersi ücreti × seans;
+ * üyelik bitişi kotanın geçerlilik süresine göre uzar.
+ */
 export async function addPackage(input: z.input<typeof packageSchema>): Promise<ActionResult> {
   const parsed = packageSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Ders sayısı ve tutarı kontrol edin." };
-  const { memberId, lessons, amount, extendDays } = parsed.data;
+  if (!parsed.success) return { ok: false, error: "Kota seçin (8 ya da 16 seans)." };
+  const { memberId, lessons, paid } = parsed.data;
   const db = await getDb();
   const [m] = await db.select().from(s.members).where(eq(s.members.id, memberId));
   if (!m) return { ok: false, error: "Üye bulunamadı." };
   const today = clubNow().date;
-  let membershipEnd = m.membershipEnd;
-  if (extendDays) {
-    const base = m.membershipEnd && m.membershipEnd > today ? m.membershipEnd : today;
-    const d = new Date(`${base}T00:00:00Z`);
-    d.setUTCDate(d.getUTCDate() + extendDays);
-    membershipEnd = d.toISOString().slice(0, 10);
-  }
-  await db.update(s.members).set({ lessonCredits: sql`${s.members.lessonCredits} + ${lessons}`, membershipEnd }).where(eq(s.members.id, memberId));
-  await db.insert(s.creditTransactions).values({ memberId, kind: "lesson_added", delta: lessons, note: `${lessons} derslik paket` });
-  if (amount) await db.insert(s.payments).values({ memberId, amount, date: today, description: `${lessons} derslik paket` });
-  await db.insert(s.activities).values({ memberId, subject: m.name, text: `${lessons} derslik paket aldı${amount ? ` · ${formatCurrency(amount)}` : ""}` });
+  const list = await getPriceList(today);
+  const amount = groupLessonPrice(list, 1) * lessons;
+  await db.update(s.members).set({ lessonCredits: sql`${s.members.lessonCredits} + ${lessons}` }).where(eq(s.members.id, memberId));
+  await extendMembership(db, [memberId], today, validityFor(list, lessons));
+  await db.insert(s.creditTransactions).values({ memberId, kind: "lesson_added", delta: lessons, note: `${lessons} seanslık ders kotası` });
+  if (paid && amount) await db.insert(s.payments).values({ memberId, amount, date: today, description: `${lessons} seanslık ders kotası` });
+  await db.insert(s.activities).values({ memberId, subject: m.name, text: `${lessons} seanslık ders kotası aldı${amount ? ` · ${formatCurrency(amount)}` : ""}` });
   revalidatePath("/", "layout");
   return { ok: true };
 }

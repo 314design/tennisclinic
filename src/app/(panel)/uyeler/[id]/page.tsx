@@ -11,6 +11,7 @@ import { getDb } from "@/server/db/client";
 import * as s from "@/server/db/schema";
 import { KIND_LABEL, LEVELS, TIER_LABEL, withDetails } from "@/server/queries/common";
 import { getPackages } from "@/server/queries/planning";
+import { getPriceList } from "@/server/queries/pricing";
 import { CollectPackageButton } from "@/components/CollectButton/CollectButton";
 import { formatCurrency } from "@/lib/format";
 import { perPerson } from "@/lib/pricing";
@@ -48,6 +49,7 @@ export default async function MemberPage({ params }: { params: Promise<{ id: str
   const upcoming = (await withDetails(upcomingRows)).filter((b) => b.status === "scheduled" || b.status === "in_progress");
   const recent = (await withDetails(recentRows)).filter((b) => b.date < now.date || b.status === "completed" || b.status === "cancelled");
   const packages = await getPackages({ memberId: id, activeOnly: false });
+  const priceList = await getPriceList(now.date);
   const activePackages = packages.filter((p) => p.remaining > 0);
   const end = member.membershipEnd;
   const expired = end && end < now.date;
@@ -63,7 +65,7 @@ export default async function MemberPage({ params }: { params: Promise<{ id: str
           <p className="page-header__lede">{TIER_LABEL[member.tier]}{member.level ? ` · ${member.level}` : ""}{member.phone ? ` · ${member.phone}` : ""}</p>
         </div>
         <div className="page-header__actions">
-          <CreditActions memberId={member.id} name={member.name} />
+          <CreditActions memberId={member.id} name={member.name} fee={priceList.groupPerPerson} validity={priceList.validityDays} />
         </div>
       </header>
 
@@ -86,7 +88,10 @@ export default async function MemberPage({ params }: { params: Promise<{ id: str
         <div className={`stat ${expired ? "stat--warn" : ""}`}>
           <p className="stat__label">Üyelik bitişi</p>
           <p className="stat__value">{end ? formatShortDate(end) : "—"}</p>
-          <p className="stat__hint">{expired ? "süresi doldu" : end ? formatDayLabel(end, now.date) : "tanımlı değil"}</p>
+          <p className="stat__hint">
+            {expired ? "süresi doldu" : end ? formatDayLabel(end, now.date) : "tanımlı değil"}
+            {member.membershipStart ? ` · başlangıç ${formatShortDate(member.membershipStart)}` : ""}
+          </p>
         </div>
       </div>
 
@@ -185,7 +190,7 @@ export default async function MemberPage({ params }: { params: Promise<{ id: str
           <section className="card" aria-labelledby="edit-title">
             <h2 className="card__title" id="edit-title">Üye bilgileri</h2>
             <div style={{ marginTop: 14 }}>
-              <MemberForm action={updateMember.bind(null, member.id)} levels={LEVELS} initial={member} />
+              <MemberForm action={updateMember.bind(null, member.id)} levels={LEVELS} initial={member} today={now.date} fee={priceList.groupPerPerson} validity={priceList.validityDays} />
             </div>
           </section>
           <section className="card" aria-labelledby="ledger-title">

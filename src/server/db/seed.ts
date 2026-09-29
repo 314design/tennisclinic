@@ -113,6 +113,7 @@ export async function seed(db: Db, { onlyIfEmpty = true, reset = false } = {}): 
         level: pick(["Başlangıç", "Orta", "İleri"]),
         // 5 üyeliğin süresi bu hafta doluyor
         membershipEnd: addDays(today, i < 5 ? 1 + i : 10 + Math.floor(rand() * 150)),
+        membershipStart: addDays(today, (i < 5 ? 1 + i : 10) - 60 - Math.floor(rand() * 30)),
         lessonCredits: 2 + Math.floor(rand() * 10),
         makeupCredits: i % 7 === 0 ? 1 : 0,
       })),
@@ -190,6 +191,7 @@ export async function seed(db: Db, { onlyIfEmpty = true, reset = false } = {}): 
     { members: [20], coach: 2, court: 2, weekday: 7, start: "10:00", exclusive: true, unpaid: true },
     { members: [25], coach: 0, court: 1, weekday: todayWd, start: "18:00" },
     { members: [26], coach: 1, court: 1, weekday: todayWd, start: "18:00", unpaid: true }, // bugün paylaşımlı kort
+    { members: [30], coach: 4, court: 2, weekday: 4, start: "09:00" }, // izinli hocanın dersleri (aktarılmayı bekler)
   ];
   const firstOn = (weekday: number) => {
     let d = addDays(today, -21);

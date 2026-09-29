@@ -3,7 +3,7 @@
 import { AlertTriangle, CircleCheck } from "lucide-react";
 import { useMemo, useState, useTransition } from "react";
 import { MemberPicker } from "@/components/MemberPicker/MemberPicker";
-import { formatDayLabel, formatShortDate } from "@/lib/format";
+import { formatCurrency, formatDayLabel, formatShortDate } from "@/lib/format";
 import { createLesson } from "@/server/actions/bookings";
 import type { CoachOption, MemberOption, PlanSlot } from "@/server/queries/planning";
 import styles from "./LessonPlanner.module.css";
@@ -17,17 +17,18 @@ interface Props {
   slot: PlanSlot;
   members: MemberOption[];
   levels: readonly string[];
+  perPersonFee: number;
   onCreated: (id: number) => void;
+  /** Takvimden seçilen kort */
+  defaultCourtId?: number;
 }
 
-export function GroupLessonForm({ coach, date, today, slot, members, levels, onCreated }: Props) {
-  const [courtId, setCourtId] = useState(slot.courts.find((c) => c.state === "free")?.id ?? slot.courts[0].id);
+export function GroupLessonForm({ coach, date, today, slot, members, levels, perPersonFee, onCreated, defaultCourtId }: Props) {
+  const [courtId, setCourtId] = useState(slot.courts.find((c) => c.id === defaultCourtId)?.id ?? slot.courts.find((c) => c.state === "free")?.id ?? slot.courts[0].id);
   const [selected, setSelected] = useState<number[]>([]);
   const [title, setTitle] = useState("");
   const [level, setLevel] = useState<string>(levels[0]);
   const [capacity, setCapacity] = useState(MAX_GROUP);
-  const [price, setPrice] = useState(0);
-  const [paid, setPaid] = useState(false);
   const [useMakeup, setUseMakeup] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [displaceable, setDisplaceable] = useState<{ id: number; label: string }[] | null>(null);
@@ -35,6 +36,11 @@ export function GroupLessonForm({ coach, date, today, slot, members, levels, onC
 
   const court = slot.courts.find((c) => c.id === courtId)!;
   const makeupAvailable = selected.some((id) => (members.find((m) => m.id === id)?.makeupCredits ?? 0) > 0);
+  // Hakkı olmayan (ücretli) öğrenci sayısı
+  const charged = selected.filter((id) => {
+    const m = members.find((x) => x.id === id);
+    return m && m.lessonCredits <= 0 && !(useMakeup && m.makeupCredits > 0);
+  }).length;
   const levelMismatch = useMemo(() => selected.filter((id) => members.find((m) => m.id === id)?.level !== level).length, [selected, members, level]);
 
   const submit = (displace = false) =>
@@ -42,7 +48,7 @@ export function GroupLessonForm({ coach, date, today, slot, members, levels, onC
       setError(null);
       const res = await createLesson({
         kind: "group", coachId: coach.id, courtId, date, start: slot.start, end: slot.end,
-        memberIds: selected, title, level, capacity, price, paid, useMakeup: makeupAvailable && useMakeup, displace,
+        memberIds: selected, title, level, capacity, useMakeup: makeupAvailable && useMakeup, displace,
       });
       if (res.ok) onCreated(res.id);
       else {
@@ -106,18 +112,16 @@ export function GroupLessonForm({ coach, date, today, slot, members, levels, onC
                 ))}
               </select>
             </label>
-            <label className="field">
-              <span className="field__label">Ücret (₺)</span>
-              <input className="input" type="number" min={0} step={50} value={price} onChange={(e) => setPrice(Math.max(0, Number(e.target.value)))} />
-              <span className="field__hint">Grup dersleri genelde aylık ücretlidir; 0 bırakabilirsiniz.</span>
-            </label>
           </div>
-          {price > 0 && (
-            <label className="check">
-              <input type="checkbox" checked={paid} onChange={(e) => setPaid(e.target.checked)} />
-              <span>Ödeme alındı</span>
-            </label>
-          )}
+          <div className={styles.sourceBox}>
+            <div className={styles.priceLine}>
+              <strong>{formatCurrency(charged * perPersonFee)}</strong>
+              <span>
+                Ders hakkı olan öğrenciler hakkından düşer; hakkı olmayanlar kişi başı {formatCurrency(perPersonFee)} öder
+                {charged ? ` (${charged} öğrenci)` : ""}.
+              </span>
+            </div>
+          </div>
           {makeupAvailable && (
             <label className="check">
               <input type="checkbox" checked={useMakeup} onChange={(e) => setUseMakeup(e.target.checked)} />

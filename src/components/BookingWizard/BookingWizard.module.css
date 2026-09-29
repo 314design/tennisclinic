@@ -1,0 +1,16 @@
+.wizard { display: flex; flex-direction: column; gap: 20px; }
+.controls { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 16px 28px; }
+.coachField { flex: 1 1 220px; max-width: 320px; }
+.fieldset { min-width: 0; margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 8px; }
+.swatch { display: inline-block; width: 12px; height: 12px; border-radius: 3px; border: 1px solid transparent; }
+.group { background: var(--ev-group-bg); }
+.private { background: var(--ev-private-bg); border-color: var(--ev-private-line); }
+.reservation { background: var(--ev-rental-bg); border-color: var(--ev-rental-line); }
+.days { margin: 14px 0; display: flex; align-items: center; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
+.day { flex: 0 0 56px; display: flex; flex-direction: column; align-items: center; padding: 6px 2px; border: 1px solid var(--line-control); border-radius: var(--r-sm); background: var(--surface); }
+.day span { font-size: 11.5px; font-weight: 700; color: var(--text-2); text-transform: capitalize; }
+.day strong { font-size: 17px; font-weight: 800; }
+.day[aria-pressed="true"] { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
+.day[aria-pressed="true"] span { color: var(--accent-soft); }
+.hint { display: flex; align-items: center; gap: 8px; padding: 14px 16px; border-radius: var(--r-md); background: var(--surface-alt); font-size: 14px; color: var(--neutral-ink); }
+.hint :global(.icon) { color: var(--primary); }

@@ -5,7 +5,8 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { addDays, clubNow, weekdayOf } from "@/lib/clock";
 import { formatCurrency, formatShortDate, toMinutes } from "@/lib/format";
-import { bandFor, canBeExclusive, MAX_PRIVATE_PEOPLE, packagePrice, singleLessonPrice } from "@/lib/pricing";
+import { bandFor, canBeExclusive, MAX_PRIVATE_PEOPLE, packagePrice, singleLessonPrice, validityFor } from "@/lib/pricing";
+import { extendMembership } from "@/server/membership";
 import { getDb } from "@/server/db/client";
 import * as s from "@/server/db/schema";
 import { getPriceList } from "@/server/queries/pricing";
@@ -24,8 +25,6 @@ const privateSchema = z.object({
   source: z.enum(["newPackage", "package", "single", "makeup"]),
   packageId: z.number().int().optional(),
   sessions: z.union([z.literal(8), z.literal(16)]).optional(),
-  /** Elle girilen tutar (yeni paket toplamı ya da tek ders ücreti); boşsa fiyat listesinden */
-  price: z.number().int().min(0).optional(),
   paid: z.boolean().default(false),
   /** Haftalık sabitleme: aynı gün ve saatte kaç hafta (1 = sabitleme yok) */
   weeks: z.number().int().min(1).max(16).default(1),
@@ -107,7 +106,7 @@ export async function createPrivateLessons(input: PrivateLessonInput): Promise<A
 
   // Paket oluştur / güncelle
   if (d.source === "newPackage") {
-    const price = d.price ?? packagePrice(list, { band, people, sessions: d.sessions!, exclusive });
+    const price = packagePrice(list, { band, people, sessions: d.sessions!, exclusive });
     [pkg] = await db
       .insert(s.packages)
       .values({
@@ -119,6 +118,8 @@ export async function createPrivateLessons(input: PrivateLessonInput): Promise<A
     if (d.paid && price > 0) {
       await db.insert(s.payments).values({ memberId: d.memberIds[0], amount: price, date: now.date, description: `${d.sessions} seanslık özel ders paketi (${people} kişi)` });
     }
+    // Üyelik bitişi ders kotasının geçerlilik süresine göre uzar
+    await extendMembership(db, d.memberIds, d.date, validityFor(list, d.sessions!));
   } else if (pkg) {
     await db
       .update(s.packages)
@@ -131,7 +132,7 @@ export async function createPrivateLessons(input: PrivateLessonInput): Promise<A
   }
 
   const single = d.source === "single";
-  const unitPrice = single ? (d.price ?? singleLessonPrice(list, { band, people, exclusive })) : 0;
+  const unitPrice = single ? singleLessonPrice(list, { band, people, exclusive }) : 0;
   const ids: number[] = [];
   for (const date of createDates) {
     const [row] = await db

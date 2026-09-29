@@ -1,19 +1,27 @@
 "use client";
 
 import { Check } from "lucide-react";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
+import { addDays } from "@/lib/clock";
+import { formatCurrency, formatShortDate } from "@/lib/format";
 import type { FormState } from "@/server/actions/members";
 
 interface MemberFormProps {
   action: (state: FormState, fd: FormData) => Promise<FormState>;
   levels: readonly string[];
-  initial?: { name: string; phone: string | null; tier: "premium" | "standard"; level: string | null; membershipEnd: string | null };
-  /** Yeni üyede başlangıç ders hakkı alanı gösterilir */
+  initial?: { name: string; phone: string | null; tier: "premium" | "standard"; level: string | null; membershipStart: string | null; membershipEnd: string | null };
+  /** Yeni üyede ders kotası seçilir; bitiş tarihi kotadan hesaplanır */
   isNew?: boolean;
+  today: string;
+  fee: number;
+  validity: Record<"8" | "16", number>;
 }
 
-export function MemberForm({ action, levels, initial, isNew }: MemberFormProps) {
+export function MemberForm({ action, levels, initial, isNew, today, fee, validity }: MemberFormProps) {
   const [state, formAction, pending] = useActionState(action, undefined);
+  const [start, setStart] = useState(initial?.membershipStart ?? today);
+  const [quota, setQuota] = useState(0);
+  const endPreview = quota ? addDays(start, validity[String(quota) as "8" | "16"]) : null;
   return (
     <form className="form" action={formAction}>
       <div className="form-grid">
@@ -42,16 +50,36 @@ export function MemberForm({ action, levels, initial, isNew }: MemberFormProps) 
           </select>
         </label>
         <label className="field">
-          <span className="field__label">Üyelik bitiş tarihi</span>
-          <input className="input" name="membershipEnd" type="date" defaultValue={initial?.membershipEnd ?? ""} />
+          <span className="field__label">Üyelik başlangıç tarihi</span>
+          <input className="input" name="membershipStart" type="date" required value={start} onChange={(e) => setStart(e.target.value)} />
+          {!isNew && (
+            <span className="field__hint">
+              Bitiş: {initial?.membershipEnd ? formatShortDate(initial.membershipEnd) : "—"} (ders kotası ve paketlere göre hesaplanır)
+            </span>
+          )}
         </label>
         {isNew && (
           <label className="field">
-            <span className="field__label">Başlangıç ders hakkı</span>
-            <input className="input" name="lessonCredits" type="number" min={0} max={100} defaultValue={0} />
+            <span className="field__label">Ders kotası (grup dersi)</span>
+            <select className="select" name="quota" value={quota} onChange={(e) => setQuota(Number(e.target.value))}>
+              <option value={0}>Kota yok</option>
+              <option value={8}>8 seans</option>
+              <option value={16}>16 seans</option>
+            </select>
+            <span className="field__hint">
+              {endPreview
+                ? `Üyelik bitişi: ${formatShortDate(endPreview)} (${validity[String(quota) as "8" | "16"]} gün) · ${formatCurrency(fee * quota)}`
+                : "Özel ders paketi satıldığında bitiş tarihi paketin geçerlilik süresine göre belirlenir."}
+            </span>
           </label>
         )}
       </div>
+      {isNew && quota > 0 && fee > 0 && (
+        <label className="check">
+          <input type="checkbox" name="paid" />
+          <span>Kota ödemesi alındı ({formatCurrency(fee * quota)})</span>
+        </label>
+      )}
       {state?.error && <p className="notice notice--error" role="alert">{state.error}</p>}
       <div className="form-actions">
         {state?.saved && !pending && (

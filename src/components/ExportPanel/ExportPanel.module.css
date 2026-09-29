@@ -1,0 +1,7 @@
+.grid { margin-top: 14px; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+.box { display: flex; gap: 14px; padding: 16px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--bg); }
+.icon { width: 28px; height: 28px; color: var(--primary); stroke-width: 1.8; }
+.body { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
+.body strong { font-size: 15.5px; font-weight: 800; }
+.body > span { font-size: 13px; color: var(--text-2); }
+.range { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
