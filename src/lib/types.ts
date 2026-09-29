@@ -18,7 +18,8 @@ export type IconName =
   | "cloud-rain"
   | "id-card"
   | "plus"
-  | "menu";
+  | "menu"
+  | "tag";
 
 /** Saat "HH:MM" biçiminde tutulur */
 export type ClockTime = string;
@@ -79,6 +80,8 @@ export interface CourtBooking {
   format?: "singles" | "doubles";
   groupName?: string;
   groupSize?: number;
+  /** Paylaşımsız kort */
+  exclusive?: boolean;
 }
 
 export interface Court {
@@ -89,6 +92,8 @@ export interface Court {
   balloon: boolean;
   /** Kortu şu an kullanan (henüz boşaltılmamış) seans */
   occupant?: CourtBooking;
+  /** Paylaşımlı kortta aynı anda süren ikinci ders ("Kerem Yılmaz (Melis Tan)") */
+  sharedWith?: string;
   /** Kortta başlayacak bir sonraki seans */
   next?: { start: ClockTime; member: string };
   maintenance?: { start: ClockTime; end: ClockTime; reason: string };

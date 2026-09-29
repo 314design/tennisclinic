@@ -1,0 +1,7 @@
+.grid td, .grid th { vertical-align: middle; }
+.band { min-width: 170px; font-size: 14px !important; font-weight: 800 !important; letter-spacing: 0 !important; text-transform: none !important; color: var(--text) !important; }
+.band span { display: block; margin-top: 2px; font-size: 12px; font-weight: 600; color: var(--text-2); }
+.offpeak .band { background: var(--warn-soft); }
+.peak .band { background: var(--surface-alt); }
+.cell { width: 110px; min-height: 40px; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+.per { display: block; margin-top: 2px; font-size: 11.5px; color: var(--danger-ink); }

@@ -1,8 +1,9 @@
 import "server-only";
-import { and, asc, between, eq, gte, ne } from "drizzle-orm";
+import { and, asc, between, eq, gte, inArray, ne, sql } from "drizzle-orm";
 import { addDays, fromMinutes, weekdayOf } from "@/lib/clock";
 import { environmentLabel } from "@/lib/courts";
 import { toMinutes } from "@/lib/format";
+import { MAX_SHARED_LESSONS, usesHalfCourt, type PriceBand } from "@/lib/pricing";
 import type { Now } from "@/lib/types";
 import { getDb } from "@/server/db/client";
 import * as s from "@/server/db/schema";
@@ -11,7 +12,8 @@ import { overlaps, withDetails } from "./common";
 export const PLAN_DAYS = 14;
 const STEP = 30;
 
-export type SlotCourtState = "free" | "displaceable";
+/** free: boş · shared: 1 kişilik paylaşımlı özel dersle paylaşılabilir · displaceable: grup önceliğiyle boşaltılabilir */
+export type SlotCourtState = "free" | "shared" | "displaceable";
 
 export interface PlanSlot {
   start: string;
@@ -60,6 +62,16 @@ export async function getAvailability(coach: CoachOption, kind: "private" | "gro
     db.select().from(s.bookings).where(and(between(s.bookings.date, now.date, to), ne(s.bookings.status, "cancelled"))),
     db.select().from(s.courtBlocks).where(between(s.courtBlocks.date, now.date, to)),
   ]);
+  // Kort paylaşımı için ders başına öğrenci sayısı
+  const counts = bookings.length
+    ? await db
+        .select({ id: s.bookingMembers.bookingId, n: sql<number>`count(*)::int` })
+        .from(s.bookingMembers)
+        .where(inArray(s.bookingMembers.bookingId, bookings.map((b) => b.id)))
+        .groupBy(s.bookingMembers.bookingId)
+    : [];
+  const half = (b: (typeof bookings)[number]) =>
+    usesHalfCourt({ kind: b.kind, exclusive: b.exclusive, memberCount: counts.find((c) => c.id === b.id)?.n ?? 0 });
 
   const days: PlanDay[] = [];
   for (let i = 0; i < PLAN_DAYS; i++) {
@@ -83,6 +95,9 @@ export async function getAvailability(coach: CoachOption, kind: "private" | "gro
           const clashes = dayBookings.filter((b) => b.courtId === c.id && overlaps(b.start, b.end, start, end));
           const base = { id: c.id, name: c.name, label: environmentLabel(c) };
           if (!clashes.length) courtStates.push({ ...base, state: "free" });
+          else if (kind === "private" && clashes.every(half) && clashes.length < MAX_SHARED_LESSONS) {
+            courtStates.push({ ...base, state: "shared", conflict: `${clashes[0].start}–${clashes[0].end} paylaşımlı özel ders` });
+          }
           else if (kind === "group" && clashes.every((b) => b.kind !== "group")) {
             courtStates.push({
               ...base,
@@ -172,4 +187,58 @@ export async function getBookingDetail(id: number) {
   if (!row) return null;
   const [detail] = await withDetails([row]);
   return detail;
+}
+
+export interface PackageOption {
+  id: number;
+  memberIds: number[];
+  memberNames: string[];
+  coachName: string | null;
+  peopleCount: number;
+  sessions: number;
+  remaining: number;
+  makeupSessions: number;
+  band: PriceBand;
+  exclusive: boolean;
+  price: number;
+  paid: boolean;
+  fixed: { weekday: number; start: string } | null;
+  createdAt: string;
+}
+
+/** Özel ders paketleri (varsayılan: seansı kalan aktif paketler) */
+export async function getPackages(opts: { memberId?: number; activeOnly?: boolean } = { activeOnly: true }): Promise<PackageOption[]> {
+  const db = await getDb();
+  let rows = await db.select().from(s.packages).orderBy(asc(s.packages.createdAt));
+  if (opts.activeOnly) rows = rows.filter((p) => p.status === "active" && p.usedSessions < p.sessions);
+  if (!rows.length) return [];
+  const [links, coaches] = await Promise.all([
+    db
+      .select({ packageId: s.packageMembers.packageId, id: s.members.id, name: s.members.name })
+      .from(s.packageMembers)
+      .innerJoin(s.members, eq(s.members.id, s.packageMembers.memberId))
+      .where(inArray(s.packageMembers.packageId, rows.map((r) => r.id))),
+    db.select({ id: s.coaches.id, name: s.coaches.name }).from(s.coaches),
+  ]);
+  return rows
+    .map((p) => {
+      const ms = links.filter((l) => l.packageId === p.id);
+      return {
+        id: p.id,
+        memberIds: ms.map((m) => m.id),
+        memberNames: ms.map((m) => m.name),
+        coachName: coaches.find((c) => c.id === p.coachId)?.name ?? null,
+        peopleCount: p.peopleCount,
+        sessions: p.sessions,
+        remaining: p.sessions - p.usedSessions,
+        makeupSessions: p.makeupSessions,
+        band: p.band,
+        exclusive: p.exclusive,
+        price: p.price,
+        paid: p.paid,
+        fixed: p.fixedWeekday && p.fixedStart ? { weekday: p.fixedWeekday, start: p.fixedStart } : null,
+        createdAt: p.createdAt.toISOString().slice(0, 10),
+      };
+    })
+    .filter((p) => !opts.memberId || p.memberIds.includes(opts.memberId));
 }

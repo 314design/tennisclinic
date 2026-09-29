@@ -65,7 +65,7 @@ export function MemberPicker({ members, selected, onChange, max, exclude = [], l
                 <span className={styles.text}>
                   <strong>{m.name}</strong>
                   <span>
-                    {m.level ?? "Seviye yok"} · Ders hakkı {m.lessonCredits}
+                    {m.level ?? "Seviye yok"} · Grup ders hakkı {m.lessonCredits}
                     {m.makeupCredits > 0 && <em> · Telafi {m.makeupCredits}</em>}
                   </span>
                 </span>

@@ -35,6 +35,13 @@ Hava durumu [Open-Meteo](https://open-meteo.com)'dan (anahtar gerektirmez) Ayarl
   (üyelik süresi değişmez). Hava durumu/antrenör/bakım iptallerinde varsayılan olarak işaretli.
 - **Ders Planla:** antrenör seçilir → 14 günlük müsait gün/saatler → kort ve öğrenci atanır. Grup dersleri
   seviye ve en fazla 6 kişilik kapasiteyle; antrenörün mevcut grup derslerine öğrenci eklenebilir.
+- **Özel ders paketleri ve fiyatlar:** 1–5 kişilik özel ders; 8/16 seanslık paket, paketsiz tek ders ya da telafi
+  hakkı. Fiyat kişi sayısı, saat bandı (hafta içi sakin saat / yoğun saat ve hafta sonu) ve paket büyüklüğüne göre
+  **Fiyatlar** ekranındaki sürümlü listeden hesaplanır (grubun toplamı); satılan paketin tutarı sabit kalır.
+- **Haftalık sabitleme:** "Her Salı 20:30'da" seçeneğiyle dersler ardışık haftalara açılır (paketin tamamı ya da
+  seçilen hafta sayısı); çakışan haftalar listelenip onayla atlanır.
+- **Paylaşımlı / paylaşımsız kort:** 1 kişilik paylaşımlı özel dersler aynı kortu en fazla 2 ders olarak paylaşır;
+  paylaşımsız kort seans başına fark (varsayılan +700 ₺) ile kortu yalnızca o derse ayırır.
 - **Grup dersi önceliği:** özel ders ya da kiralama grup dersinin saatine yazılamaz; grup dersi eklenirken
   çakışan özel dersler onayla iptal edilir ve üyelere telafi hakkı verilir.
 - **Kortlar:** 2 açık + 1 kapalı kort; açık kort kış için "Balon Kort" yapılabilir (yağmur uyarısı dışında kalır),

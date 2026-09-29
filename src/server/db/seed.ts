@@ -6,6 +6,7 @@ import { sql } from "drizzle-orm";
 import { addDays, clubNow, fromMinutes, weekdayOf } from "../../lib/clock";
 import { toMinutes } from "../../lib/format";
 import type { Db } from "./connect";
+import { bandFor, DEFAULT_PRICE_LIST, MAX_SHARED_LESSONS, packagePrice, singleLessonPrice } from "../../lib/pricing";
 import { DEFAULT_SETTINGS } from "./defaults";
 import * as s from "./schema";
 
@@ -52,11 +53,16 @@ const GROUPS = [
   { title: "Performans grubu", level: "İleri", capacity: 6, coach: 0, court: 0, days: [6], start: "10:00", end: "12:00", members: [0, 1, 2, 6, 7] },
 ];
 
-const PRICE = { private: 1500, reservation: 900, groupPerMember: 400 };
+const PRICE = { reservation: 900, groupPerMember: 400 };
 
 export async function seedBase(db: Db) {
   for (const [key, value] of Object.entries(DEFAULT_SETTINGS)) {
     await db.insert(s.settings).values({ key, value }).onConflictDoNothing();
+  }
+  const [{ lists }] = await db.select({ lists: sql<number>`count(*)::int` }).from(s.priceLists);
+  if (lists === 0) {
+    const { effectiveFrom, ...data } = DEFAULT_PRICE_LIST;
+    await db.insert(s.priceLists).values({ effectiveFrom, data });
   }
   const [{ count }] = await db.select({ count: sql<number>`count(*)::int` }).from(s.courts);
   if (count === 0) {
@@ -71,7 +77,7 @@ export async function seedBase(db: Db) {
 export async function seed(db: Db, { onlyIfEmpty = true, reset = false } = {}): Promise<boolean> {
   if (reset) {
     await db.execute(
-      sql`TRUNCATE activities, payments, credit_transactions, booking_members, bookings, members, coach_hours, coaches, court_blocks, courts, settings RESTART IDENTITY CASCADE`,
+      sql`TRUNCATE activities, payments, credit_transactions, booking_members, bookings, package_members, packages, price_lists, members, coach_hours, coaches, court_blocks, courts, settings RESTART IDENTITY CASCADE`,
     );
   }
   if (onlyIfEmpty) {
@@ -117,12 +123,16 @@ export async function seed(db: Db, { onlyIfEmpty = true, reset = false } = {}): 
   );
 
   // ---------- Seanslar ----------
-  type Slot = { courtId: number; coachId?: number; date: string; start: number; end: number };
+  // half: 1 kişilik paylaşımlı özel ders (kortu en fazla 2 ders paylaşır)
+  type Slot = { courtId: number; coachId?: number; date: string; start: number; end: number; half?: boolean };
   const taken: Slot[] = [];
-  const overlaps = (a: Slot) =>
-    taken.some(
-      (b) => b.date === a.date && a.start < b.end && b.start < a.end && (b.courtId === a.courtId || (a.coachId && b.coachId === a.coachId)),
-    );
+  const overlaps = (a: Slot) => {
+    const sameTime = taken.filter((b) => b.date === a.date && a.start < b.end && b.start < a.end);
+    if (a.coachId && sameTime.some((b) => b.coachId === a.coachId)) return true;
+    const onCourt = sameTime.filter((b) => b.courtId === a.courtId);
+    if (!onCourt.length) return false;
+    return !(a.half && onCourt.every((b) => b.half) && onCourt.length < MAX_SHARED_LESSONS);
+  };
 
   const payments: (typeof s.payments.$inferInsert)[] = [];
 
@@ -161,9 +171,47 @@ export async function seed(db: Db, { onlyIfEmpty = true, reset = false } = {}): 
       }
     } else if (paid && status !== "scheduled") {
       const amount = b.kind === "group" ? PRICE.groupPerMember * memberIds.length : b.price ?? 0;
-      payments.push({ memberId: memberIds[0], bookingId: row.id, amount, date: b.date, description: b.kind === "group" ? `${b.title} · ders ücreti` : b.kind === "private" ? "Özel ders" : "Kort kiralama" });
+      if (amount > 0) payments.push({ memberId: memberIds[0], bookingId: row.id, amount, date: b.date, description: b.kind === "group" ? `${b.title} · ders ücreti` : b.kind === "private" ? "Özel ders" : "Kort kiralama" });
     }
     return row;
+  }
+
+  // ---------- Haftalık sabit özel ders paketleri (8 seans, 3 hafta önce başlamış) ----------
+  const todayWd = weekdayOf(today);
+  const PACKAGES: { members: number[]; coach: number; court: number; weekday: number; start: string; exclusive?: boolean; unpaid?: boolean }[] = [
+    { members: [3], coach: 0, court: 0, weekday: 2, start: "20:00" },
+    { members: [9], coach: 1, court: 0, weekday: 2, start: "20:00" }, // aynı kortu paylaşır
+    { members: [10], coach: 0, court: 1, weekday: 4, start: "11:00", exclusive: true },
+    { members: [11, 16], coach: 3, court: 1, weekday: 1, start: "10:00" },
+    { members: [8], coach: 2, court: 0, weekday: 6, start: "14:00" },
+    { members: [0], coach: 0, court: 2, weekday: 3, start: "12:00" },
+    { members: [1], coach: 3, court: 2, weekday: 3, start: "12:00" }, // aynı kortu paylaşır
+    { members: [4, 5, 6], coach: 1, court: 0, weekday: 5, start: "19:00" },
+    { members: [20], coach: 2, court: 2, weekday: 7, start: "10:00", exclusive: true, unpaid: true },
+    { members: [25], coach: 0, court: 1, weekday: todayWd, start: "18:00" },
+    { members: [26], coach: 1, court: 1, weekday: todayWd, start: "18:00", unpaid: true }, // bugün paylaşımlı kort
+  ];
+  const firstOn = (weekday: number) => {
+    let d = addDays(today, -21);
+    while (weekdayOf(d) !== weekday) d = addDays(d, 1);
+    return d;
+  };
+  const packageRows = [];
+  for (const p of PACKAGES) {
+    const start = firstOn(p.weekday);
+    const end = fromMinutes(toMinutes(p.start) + 60);
+    const band = bandFor(DEFAULT_PRICE_LIST, start, p.start, end);
+    const price = packagePrice(DEFAULT_PRICE_LIST, { band, people: p.members.length, sessions: 8, exclusive: !!p.exclusive });
+    const [row] = await db
+      .insert(s.packages)
+      .values({
+        coachId: coachRows[p.coach].id, peopleCount: p.members.length, sessions: 8, band, exclusive: !!p.exclusive && p.members.length === 1,
+        price, paid: !p.unpaid, fixedWeekday: p.weekday, fixedStart: p.start,
+      })
+      .returning();
+    await db.insert(s.packageMembers).values(p.members.map((i) => ({ packageId: row.id, memberId: memberRows[i].id })));
+    if (!p.unpaid) payments.push({ memberId: memberRows[p.members[0]].id, amount: price, date: start, description: `8 seanslık özel ders paketi (${p.members.length} kişi)` });
+    packageRows.push({ def: p, row, dates: Array.from({ length: 8 }, (_, i) => addDays(start, i * 7)), end, used: 0 });
   }
 
   for (let offset = -42; offset <= 14; offset++) {
@@ -186,9 +234,26 @@ export async function seed(db: Db, { onlyIfEmpty = true, reset = false } = {}): 
       );
     }
 
-    // 2) Özel dersler ve kort kiralamaları boş saatlere
+    // 2) Haftalık sabit paket dersleri
+    for (const pk of packageRows) {
+      if (!pk.dates.includes(date)) continue;
+      const court = courtRows[pk.def.court];
+      const coach = coachRows[pk.def.coach];
+      const half = pk.def.members.length === 1 && !pk.row.exclusive;
+      const slot = { courtId: court.id, coachId: coach.id, date, start: toMinutes(pk.def.start), end: toMinutes(pk.end), half };
+      if (overlaps(slot)) continue;
+      taken.push(slot);
+      pk.used++;
+      await addBooking(
+        { kind: "private", courtId: court.id, coachId: coach.id, date, start: pk.def.start, end: pk.end, packageId: pk.row.id, exclusive: pk.row.exclusive, seriesId: `seed-${pk.row.id}`, price: 0 },
+        pk.def.members.map((i) => memberRows[i].id),
+        { cancelWeather: rainyDay && court.environment === "outdoor" },
+      );
+    }
+
+    // 3) Tek özel dersler ve kort kiralamaları boş saatlere
     const activeCoaches = coachRows.filter((c) => !c.onLeave);
-    const lessonCount = 6 + Math.floor(rand() * 4);
+    const lessonCount = 3 + Math.floor(rand() * 3);
     const rentalCount = 5 + Math.floor(rand() * 4);
     for (let n = 0; n < lessonCount + rentalCount; n++) {
       const isLesson = n < lessonCount;
@@ -201,7 +266,7 @@ export async function seed(db: Db, { onlyIfEmpty = true, reset = false } = {}): 
         const hours = COACHES[coachRows.indexOf(coach)].hours.find(([d]) => d === weekday);
         if (!hours || start < toMinutes(hours[1]) || start + duration > toMinutes(hours[2])) continue;
       }
-      const slot = { courtId: court.id, coachId: coach?.id, date, start, end: start + duration };
+      const slot = { courtId: court.id, coachId: coach?.id, date, start, end: start + duration, half: isLesson };
       if (overlaps(slot)) continue;
       taken.push(slot);
       const members = isLesson ? [pick(memberRows).id] : [pick(memberRows).id, pick(memberRows).id].filter((v, i, a) => a.indexOf(v) === i);
@@ -214,7 +279,9 @@ export async function seed(db: Db, { onlyIfEmpty = true, reset = false } = {}): 
           start: fromMinutes(start),
           end: fromMinutes(start + duration),
           format: isLesson ? null : members.length > 1 && rand() < 0.4 ? "doubles" : "singles",
-          price: isLesson ? PRICE.private : Math.round((PRICE.reservation * duration) / 60),
+          price: isLesson
+            ? singleLessonPrice(DEFAULT_PRICE_LIST, { band: bandFor(DEFAULT_PRICE_LIST, date, fromMinutes(start), fromMinutes(start + duration)), people: 1, exclusive: false })
+            : Math.round((PRICE.reservation * duration) / 60),
         },
         members,
         { unpaid: offset >= 0 && offset <= 3 && !isLesson && rand() < 0.3, cancelWeather: rainyDay && court.environment === "outdoor" },
@@ -222,6 +289,9 @@ export async function seed(db: Db, { onlyIfEmpty = true, reset = false } = {}): 
     }
   }
 
+  for (const pk of packageRows) {
+    await db.update(s.packages).set({ usedSessions: pk.used }).where(sql`${s.packages.id} = ${pk.row.id}`);
+  }
   if (payments.length) await db.insert(s.payments).values(payments);
 
   // Bir bakım kaydı: yarın sabah Kort 2 zemin bakımı

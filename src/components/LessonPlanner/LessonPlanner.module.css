@@ -31,3 +31,16 @@
 @media (max-width: 1023px) {
   .formGrid { grid-template-columns: minmax(0, 1fr); }
 }
+.slotShared { border-style: dashed; border-color: var(--line-strong); background: var(--surface-alt); }
+.formGrid + .formGrid { margin-top: 0; }
+.fieldset + .fieldset { margin-top: 0; }
+.sourceBox { display: flex; flex-direction: column; gap: 12px; padding: 14px; border-radius: var(--r-md); background: var(--bg); border: 1px solid var(--line); }
+.priceLine { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+.priceLine strong { font-size: 24px; font-weight: 800; letter-spacing: -.02em; }
+.priceLine span { font-size: 13px; color: var(--text-2); }
+.series { display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: var(--r-md); background: var(--accent-soft); border: 1px solid var(--accent-line); }
+.seriesRow { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; font-size: 14px; font-weight: 600; }
+.seriesRow .select { width: auto; min-height: 38px; }
+.dates { display: flex; flex-wrap: wrap; gap: 6px; }
+.dates span { padding: 3px 8px; border-radius: var(--pill); background: var(--surface); font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.dates span.conflict { background: var(--warn-soft); color: var(--warn-ink); text-decoration: line-through; }

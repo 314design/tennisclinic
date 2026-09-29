@@ -3,7 +3,8 @@ import Link from "next/link";
 import { LessonPlanner } from "@/components/LessonPlanner/LessonPlanner";
 import { clubNow } from "@/lib/clock";
 import { LEVELS } from "@/server/queries/common";
-import { getAvailability, getCoachGroups, getCoachOptions, getMemberOptions } from "@/server/queries/planning";
+import { getAvailability, getCoachGroups, getCoachOptions, getMemberOptions, getPackages } from "@/server/queries/planning";
+import { getPriceList } from "@/server/queries/pricing";
 
 export const metadata = { title: "Ders Planla · Tennis Clinic" };
 
@@ -12,7 +13,7 @@ export default async function NewLessonPage({ searchParams }: { searchParams: Pr
   const now = clubNow();
   const kind = sp.tur === "grup" ? "group" : "private";
   const duration = [60, 90, 120].includes(Number(sp.sure)) ? Number(sp.sure) : kind === "group" ? 90 : 60;
-  const [coaches, members] = await Promise.all([getCoachOptions(), getMemberOptions()]);
+  const [coaches, members, packages, priceList] = await Promise.all([getCoachOptions(), getMemberOptions(), getPackages(), getPriceList(now.date)]);
   const coach = coaches.find((c) => String(c.id) === sp.hoca && !c.onLeave) ?? null;
   const [days, groups] = coach
     ? await Promise.all([getAvailability(coach, kind, duration, now), getCoachGroups(coach.id, now)])
@@ -41,7 +42,8 @@ export default async function NewLessonPage({ searchParams }: { searchParams: Pr
         groups={groups}
         members={members}
         levels={LEVELS}
-        defaultPrice={0}
+        packages={packages}
+        priceList={priceList}
       />
     </>
   );

@@ -9,6 +9,7 @@ import {
   Menu,
   Plus,
   Settings,
+  Tag,
   UserPlus,
   UserRound,
   Users,
@@ -53,6 +54,7 @@ const ICONS: Record<IconName, LucideIcon> = {
   "id-card": IdCard,
   plus: Plus,
   menu: Menu,
+  tag: Tag,
 };
 
 interface IconProps {

@@ -13,11 +13,11 @@ import { CANCEL_REASONS, type CancelReason } from "@/lib/booking";
 
 export type ActionResult<T = unknown> =
   | ({ ok: true } & T)
-  | { ok: false; error: string; displaceable?: { id: number; label: string }[] };
+  | { ok: false; error: string; displaceable?: { id: number; label: string }[]; conflicts?: { date: string; reason: string }[] };
 
 const refresh = () => revalidatePath("/", "layout");
 
-async function logActivity(db: Db, subject: string, text: string, opts: { memberId?: number; tone?: "default" | "danger" } = {}) {
+export async function logActivity(db: Db, subject: string, text: string, opts: { memberId?: number; tone?: "default" | "danger" } = {}) {
   await db.insert(s.activities).values({ subject, text, memberId: opts.memberId, tone: opts.tone ?? "default" });
 }
 
@@ -32,7 +32,7 @@ async function loadBooking(db: Db, id: number) {
 }
 
 /** Ders hakkı düş: telafi istendiyse ve varsa telafiden, yoksa paketten */
-async function consumeCredit(db: Db, memberId: number, bookingId: number, preferMakeup: boolean) {
+export async function consumeCredit(db: Db, memberId: number, bookingId: number, preferMakeup: boolean) {
   const [m] = await db.select().from(s.members).where(eq(s.members.id, memberId));
   const useMakeup = preferMakeup && m.makeupCredits > 0;
   if (useMakeup) {
@@ -52,7 +52,19 @@ async function cancelInternal(db: Db, booking: BookingDetail, reason: CancelReas
     .where(eq(s.bookings.id, booking.id));
   // Kiralamalarda ders hakkı kullanılmaz; telafi yalnızca derslerde verilir
   const makeup = grantMakeup && booking.kind !== "reservation";
-  if (makeup) {
+  if (makeup && booking.packageId) {
+    // Paket dersi: seans pakete telafi olarak iade edilir
+    await db
+      .update(s.packages)
+      .set({ usedSessions: sql`greatest(${s.packages.usedSessions} - 1, 0)`, makeupSessions: sql`${s.packages.makeupSessions} + 1`, status: "active" })
+      .where(eq(s.packages.id, booking.packageId));
+    for (const m of booking.members) {
+      await db.insert(s.creditTransactions).values({
+        memberId: m.id, kind: "makeup_granted", delta: 1, bookingId: booking.id,
+        note: `${CANCEL_REASONS[reason]} nedeniyle iptal · seans pakete iade edildi`,
+      });
+    }
+  } else if (makeup) {
     for (const m of booking.members) {
       await db.update(s.members).set({ makeupCredits: sql`${s.members.makeupCredits} + 1` }).where(eq(s.members.id, m.id));
       await db.insert(s.creditTransactions).values({
@@ -134,7 +146,7 @@ const baseSchema = z.object({
 });
 
 const lessonSchema = baseSchema.extend({
-  kind: z.enum(["private", "group"]),
+  kind: z.literal("group"),
   coachId: z.number().int(),
   title: z.string().max(80).optional(),
   level: z.string().max(40).optional(),
@@ -148,7 +160,7 @@ type SlotCheck =
   | { error: string; displaceable?: { id: number; label: string }[] }
   | { error?: undefined; displaceable: BookingDetail[] };
 
-async function checkSlot(db: Db, req: Parameters<typeof findConflicts>[1], displace: boolean): Promise<SlotCheck> {
+export async function checkSlot(db: Db, req: Parameters<typeof findConflicts>[1], displace: boolean): Promise<SlotCheck> {
   if (!validTimeRange(req.start, req.end)) return { error: "Başlangıç ve bitiş saatlerini kontrol edin." };
   const now = clubNow();
   if (req.date < now.date || (req.date === now.date && toMinutes(req.start) < toMinutes(now.time) - 5)) {
@@ -156,7 +168,7 @@ async function checkSlot(db: Db, req: Parameters<typeof findConflicts>[1], displ
   }
   const c = await findConflicts(db, req);
   if (c.blocked) return { error: `Kort bu saatte bakımda (${c.blocked.reason}, ${c.blocked.start}–${c.blocked.end}).` };
-  if (c.blocking.length) return { error: c.blocking.map((x) => x.reason).join(" · ") };
+  if (c.blocking.length) return { error: [...new Set(c.blocking.map((x) => x.reason))].join(" · ") };
   if (c.displaceable.length && !displace) {
     return {
       error: "Bu saatte aynı kortta özel ders/kiralama var. Grup dersleri önceliklidir; onaylarsanız bu seanslar iptal edilir ve üyelere telafi hakkı verilir.",
@@ -181,10 +193,9 @@ export async function createLesson(input: z.input<typeof lessonSchema>): Promise
   const inHours = hours.some((h) => toMinutes(h.start) <= toMinutes(d.start) && toMinutes(d.end) <= toMinutes(h.end));
   if (!inHours) return { ok: false, error: `${coach.name} bu saatte çalışmıyor.` };
 
-  if (d.kind === "private" && d.memberIds.length !== 1) return { ok: false, error: "Özel ders için bir üye seçin." };
-  const capacity = d.kind === "group" ? (d.capacity ?? MAX_GROUP_SIZE) : 1;
+  const capacity = d.capacity ?? MAX_GROUP_SIZE;
   if (d.memberIds.length > capacity) return { ok: false, error: `Bu ders en fazla ${capacity} kişilik.` };
-  if (d.kind === "group" && !d.level) return { ok: false, error: "Grup dersi için seviye seçin." };
+  if (!d.level) return { ok: false, error: "Grup dersi için seviye seçin." };
 
   const slot = await checkSlot(db, { kind: d.kind, courtId: d.courtId, coachId: d.coachId, date: d.date, start: d.start, end: d.end }, d.displace);
   if (slot.error !== undefined) return { ok: false, error: slot.error, displaceable: slot.displaceable };
@@ -195,9 +206,9 @@ export async function createLesson(input: z.input<typeof lessonSchema>): Promise
     .insert(s.bookings)
     .values({
       kind: d.kind, courtId: d.courtId, coachId: d.coachId, date: d.date, start: d.start, end: d.end,
-      title: d.kind === "group" ? d.title?.trim() || `${d.level} grubu` : null,
-      level: d.kind === "group" ? d.level : null,
-      capacity: d.kind === "group" ? capacity : null,
+      title: d.title?.trim() || `${d.level} grubu`,
+      level: d.level,
+      capacity,
       price: d.price, paid: d.paid || d.price === 0,
     })
     .returning();

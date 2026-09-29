@@ -64,6 +64,47 @@ export const members = pgTable("members", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+/** Sürümlü fiyat listesi; geçerli olan, başlangıç tarihi bugüne en yakın geçmiş kayıttır */
+export const priceLists = pgTable("price_lists", {
+  id: serial("id").primaryKey(),
+  effectiveFrom: text("effective_from").notNull(),
+  data: jsonb("data").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type PriceBand = "offpeak" | "peak";
+
+/** Özel ders paketi (1–5 kişi, 8/16 seans). Paketin seansları bu pakete bağlı derslerle kullanılır. */
+export const packages = pgTable("packages", {
+  id: serial("id").primaryKey(),
+  coachId: integer("coach_id").references(() => coaches.id),
+  peopleCount: integer("people_count").notNull(),
+  sessions: integer("sessions").notNull(),
+  /** Planlanmış ya da yanmış seans sayısı (telafili iptalde geri iade edilir) */
+  usedSessions: integer("used_sessions").notNull().default(0),
+  /** Telafi olarak iade edilen seans sayısı (bilgi amaçlı) */
+  makeupSessions: integer("makeup_sessions").notNull().default(0),
+  band: text("band").notNull().$type<PriceBand>(),
+  /** Paylaşımsız kort: kort yalnızca bu ders için ayrılır */
+  exclusive: boolean("exclusive").notNull().default(false),
+  price: integer("price").notNull(),
+  paid: boolean("paid").notNull().default(false),
+  /** Sabitlenen haftalık gün/saat (1 = Pazartesi) */
+  fixedWeekday: integer("fixed_weekday"),
+  fixedStart: text("fixed_start"),
+  status: text("status").notNull().default("active").$type<"active" | "completed" | "cancelled">(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const packageMembers = pgTable(
+  "package_members",
+  {
+    packageId: integer("package_id").notNull().references(() => packages.id, { onDelete: "cascade" }),
+    memberId: integer("member_id").notNull().references(() => members.id, { onDelete: "cascade" }),
+  },
+  (t) => [primaryKey({ columns: [t.packageId, t.memberId] })],
+);
+
 export type BookingKind = "private" | "group" | "reservation";
 export type BookingStatus = "scheduled" | "in_progress" | "completed" | "cancelled";
 
@@ -83,6 +124,12 @@ export const bookings = pgTable(
     level: text("level"),
     capacity: integer("capacity"),
     format: text("format").$type<"singles" | "doubles">(),
+    /** Özel ders paketi (varsa); seans ücreti pakette tutulur */
+    packageId: integer("package_id").references(() => packages.id, { onDelete: "set null" }),
+    /** Paylaşımsız kort (özel ders) */
+    exclusive: boolean("exclusive").notNull().default(false),
+    /** Haftalık sabit seri kimliği (aynı seriden oluşturulan dersler) */
+    seriesId: text("series_id"),
     price: integer("price").notNull().default(0),
     paid: boolean("paid").notNull().default(true),
     startedAt: timestamp("started_at", { withTimezone: true }),

@@ -6,6 +6,8 @@ import { formatCurrency, formatShortDate } from "@/lib/format";
 import { getDb } from "@/server/db/client";
 import * as s from "@/server/db/schema";
 import { KIND_LABEL, withDetails } from "@/server/queries/common";
+import { getPackages } from "@/server/queries/planning";
+import { CollectPackageButton } from "@/components/CollectButton/CollectButton";
 
 export const metadata = { title: "Ödemeler · Tennis Clinic" };
 
@@ -35,7 +37,8 @@ export default async function PaymentsPage() {
       .where(gte(s.payments.date, from)),
   ]);
   const unpaid = await withDetails(unpaidRows);
-  const unpaidTotal = unpaid.reduce((a, b) => a + b.price, 0);
+  const unpaidPackages = (await getPackages({ activeOnly: false })).filter((p) => !p.paid && p.price > 0);
+  const unpaidTotal = unpaid.reduce((a, b) => a + b.price, 0) + unpaidPackages.reduce((a, p) => a + p.price, 0);
 
   return (
     <>
@@ -50,7 +53,7 @@ export default async function PaymentsPage() {
         <div className={`stat ${unpaid.length ? "stat--warn" : ""}`}>
           <p className="stat__label">Bekleyen</p>
           <p className="stat__value">{formatCurrency(unpaidTotal)}</p>
-          <p className="stat__hint">{unpaid.length} seans</p>
+          <p className="stat__hint">{unpaid.length} seans · {unpaidPackages.length} paket</p>
         </div>
         <div className="stat">
           <p className="stat__label">Bugün tahsil edilen</p>
@@ -62,8 +65,35 @@ export default async function PaymentsPage() {
         </div>
       </div>
 
+      {unpaidPackages.length > 0 && (
+        <section className="card" aria-labelledby="packages-title">
+          <h2 className="card__title" id="packages-title">Ödenmemiş paketler</h2>
+          <div className="table-wrap" style={{ marginTop: 8 }}>
+            <table className="table">
+              <thead>
+                <tr><th>Satış</th><th>Paket</th><th>Öğrenciler</th><th className="num">Tutar</th><th aria-label="İşlem" /></tr>
+              </thead>
+              <tbody>
+                {unpaidPackages.map((p) => (
+                  <tr key={p.id}>
+                    <td className="nowrap">{formatShortDate(p.createdAt)}</td>
+                    <td>
+                      {p.sessions} seans · {p.peopleCount} kişi
+                      <div className="muted">{p.band === "offpeak" ? "Sakin saat" : "Yoğun saat"}{p.exclusive ? " · paylaşımsız" : ""}{p.coachName ? ` · ${p.coachName}` : ""}</div>
+                    </td>
+                    <td>{p.memberIds.map((id, i) => <div key={id}><Link className="row-link" href={`/uyeler/${id}`}>{p.memberNames[i]}</Link></div>)}</td>
+                    <td className="num">{formatCurrency(p.price)}</td>
+                    <td className="num"><CollectPackageButton id={p.id} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
       <section className="card" aria-labelledby="unpaid-title">
-        <h2 className="card__title" id="unpaid-title">Bekleyen ödemeler</h2>
+        <h2 className="card__title" id="unpaid-title">Bekleyen seans ödemeleri</h2>
         {unpaid.length ? (
           <div className="table-wrap" style={{ marginTop: 8 }}>
             <table className="table">

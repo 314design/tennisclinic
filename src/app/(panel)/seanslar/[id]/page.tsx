@@ -7,7 +7,7 @@ import { clubNow } from "@/lib/clock";
 import { environmentLabel, FORMAT_LABEL } from "@/lib/courts";
 import { formatCurrency, formatDayLabel, formatShortDate } from "@/lib/format";
 import { KIND_LABEL, TIER_LABEL } from "@/server/queries/common";
-import { getBookingDetail, getMemberOptions } from "@/server/queries/planning";
+import { getBookingDetail, getMemberOptions, getPackages } from "@/server/queries/planning";
 
 const STATUS = {
   scheduled: { label: "Planlandı", chip: "chip--outline" },
@@ -21,6 +21,7 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
   const b = await getBookingDetail(Number(id));
   if (!b) notFound();
   const members = await getMemberOptions();
+  const pkg = b.packageId ? (await getPackages({ activeOnly: false })).find((p) => p.id === b.packageId) : undefined;
   const now = clubNow();
   const title = b.kind === "group" ? (b.title ?? "Grup dersi") : b.members.map((m) => m.name).join(", ") || KIND_LABEL[b.kind];
   const capacity = b.kind === "group" ? (b.capacity ?? 6) : b.kind === "private" ? 1 : 4;
@@ -103,8 +104,28 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
             <dt>Durum</dt>
             <dd><span className={`chip chip--sm ${status.chip}`}>{status.label}</span></dd>
             {b.format && (<><dt>Biçim</dt><dd>{FORMAT_LABEL[b.format]}</dd></>)}
+            {b.kind === "private" && (
+              <>
+                <dt>Kort</dt>
+                <dd>{b.exclusive ? "Paylaşımsız" : b.members.length === 1 ? "Paylaşımlı (en fazla 2 ders)" : "Tüm kort"}</dd>
+              </>
+            )}
+            {pkg && (
+              <>
+                <dt>Paket</dt>
+                <dd>
+                  {pkg.sessions} seans · {pkg.remaining} kaldı · {formatCurrency(pkg.price)} {pkg.paid ? "· ödendi" : "· ödenmedi"}
+                </dd>
+              </>
+            )}
+            {b.seriesId && (
+              <>
+                <dt>Seri</dt>
+                <dd>Haftalık sabit ders</dd>
+              </>
+            )}
             <dt>Ücret</dt>
-            <dd>{b.price ? formatCurrency(b.price) : "—"} {b.price > 0 && (b.paid ? "· ödendi" : "· ödenmedi")}</dd>
+            <dd>{b.price ? formatCurrency(b.price) : pkg ? "Paketten" : "—"} {b.price > 0 && (b.paid ? "· ödendi" : "· ödenmedi")}</dd>
             {b.status === "cancelled" && (
               <>
                 <dt>İptal nedeni</dt>

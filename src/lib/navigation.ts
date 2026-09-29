@@ -27,6 +27,7 @@ export function navSections(counts: { bookingsToday: number; unpaidCount: number
           icon: "wallet",
           badge: counts.unpaidCount ? { value: counts.unpaidCount, label: `${counts.unpaidCount} bekleyen` } : undefined,
         },
+        { label: "Fiyatlar", href: "/fiyatlar", icon: "tag" },
         { label: "Raporlar", href: "/raporlar", icon: "chart" },
       ],
     },

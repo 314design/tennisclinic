@@ -10,6 +10,12 @@ import { updateMember } from "@/server/actions/members";
 import { getDb } from "@/server/db/client";
 import * as s from "@/server/db/schema";
 import { KIND_LABEL, LEVELS, TIER_LABEL, withDetails } from "@/server/queries/common";
+import { getPackages } from "@/server/queries/planning";
+import { CollectPackageButton } from "@/components/CollectButton/CollectButton";
+import { formatCurrency } from "@/lib/format";
+import { perPerson } from "@/lib/pricing";
+
+const WEEKDAY = ["", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar"];
 
 const CREDIT_LABEL: Record<s.CreditKind, string> = {
   lesson_added: "Ders hakkı eklendi",
@@ -41,6 +47,8 @@ export default async function MemberPage({ params }: { params: Promise<{ id: str
   ]);
   const upcoming = (await withDetails(upcomingRows)).filter((b) => b.status === "scheduled" || b.status === "in_progress");
   const recent = (await withDetails(recentRows)).filter((b) => b.date < now.date || b.status === "completed" || b.status === "cancelled");
+  const packages = await getPackages({ memberId: id, activeOnly: false });
+  const activePackages = packages.filter((p) => p.remaining > 0);
   const end = member.membershipEnd;
   const expired = end && end < now.date;
 
@@ -61,9 +69,14 @@ export default async function MemberPage({ params }: { params: Promise<{ id: str
 
       <div className="stat-row">
         <div className="stat">
-          <p className="stat__label">Ders hakkı</p>
+          <p className="stat__label">Özel ders paketi</p>
+          <p className="stat__value">{activePackages.reduce((a, p) => a + p.remaining, 0)}</p>
+          <p className="stat__hint">{activePackages.length ? `${activePackages.length} aktif pakette kalan seans` : "aktif paket yok"}</p>
+        </div>
+        <div className="stat">
+          <p className="stat__label">Grup ders hakkı</p>
           <p className="stat__value">{member.lessonCredits}</p>
-          <p className="stat__hint">paketten kalan</p>
+          <p className="stat__hint">grup dersleri için</p>
         </div>
         <div className={`stat ${member.makeupCredits ? "stat--accent" : ""}`}>
           <p className="stat__label">Telafi hakkı</p>
@@ -76,6 +89,50 @@ export default async function MemberPage({ params }: { params: Promise<{ id: str
           <p className="stat__hint">{expired ? "süresi doldu" : end ? formatDayLabel(end, now.date) : "tanımlı değil"}</p>
         </div>
       </div>
+
+      <section className="card" aria-labelledby="packages-title">
+        <header className="card__head">
+          <div>
+            <h2 className="card__title" id="packages-title">Özel ders paketleri</h2>
+            <p className="card__meta">Tutarlar grubun toplamıdır</p>
+          </div>
+          <Link className="btn btn--sm btn--outline" href="/dersler/yeni">Paket sat / ders planla</Link>
+        </header>
+        {packages.length ? (
+          <div className="table-wrap" style={{ marginTop: 8 }}>
+            <table className="table">
+              <thead>
+                <tr><th>Paket</th><th>Sabit gün</th><th className="num">Kalan</th><th className="num">Tutar</th><th>Ödeme</th></tr>
+              </thead>
+              <tbody>
+                {packages.map((p) => (
+                  <tr key={p.id} style={p.remaining === 0 ? { opacity: 0.6 } : undefined}>
+                    <td>
+                      <strong>{p.sessions} seans · {p.peopleCount} kişi</strong>
+                      <div className="muted">
+                        {p.band === "offpeak" ? "Sakin saat" : "Yoğun saat"}{p.exclusive ? " · paylaşımsız" : p.peopleCount === 1 ? " · paylaşımlı" : ""}{p.coachName ? ` · ${p.coachName}` : ""}
+                        {p.peopleCount > 1 ? ` · ${p.memberNames.filter((n) => n !== member.name).join(", ")} ile` : ""}
+                      </div>
+                    </td>
+                    <td className="nowrap">{p.fixed ? `Her ${WEEKDAY[p.fixed.weekday]} ${p.fixed.start}` : <span className="muted">—</span>}</td>
+                    <td className="num">
+                      {p.remaining}/{p.sessions}
+                      {p.makeupSessions > 0 && <div className="muted">{p.makeupSessions} telafi iadesi</div>}
+                    </td>
+                    <td className="num">
+                      {formatCurrency(p.price)}
+                      {p.peopleCount > 1 && <div className="muted">kişi başı {formatCurrency(perPerson(p.price, p.peopleCount))}</div>}
+                    </td>
+                    <td>{p.paid ? <span className="chip chip--sm chip--ok">Ödendi</span> : <CollectPackageButton id={p.id} />}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="empty">Paket yok. Ders Planla ekranında özel ders oluştururken yeni paket satabilirsiniz.</p>
+        )}
+      </section>
 
       <div className="two-col">
         <div className="stack-lg">

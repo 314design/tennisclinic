@@ -119,7 +119,11 @@ export function getCourtView(court: Court, now: ClockTime): CourtView {
   }
 
   const b = court.occupant!;
-  const base = { kind: b.kind, range: `${b.start}–${b.end}`, figures: figuresFor(b), ...describe(b) };
+  const described = describe(b);
+  // Paylaşımlı kortta ikinci ders ve paylaşımsız ders alt satırda belirtilir
+  if (court.sharedWith) described.sub = `Paylaşımlı · ${court.sharedWith}`;
+  else if (b.exclusive) described.sub = `${described.sub} · paylaşımsız`;
+  const base = { kind: b.kind, range: `${b.start}–${b.end}`, figures: figuresFor(b), ...described };
 
   if (status === "overtime") {
     return { ...base, status, progress: 100, remaining: "Süre doldu", short: "Süre doldu" };

@@ -19,6 +19,7 @@ import type {
 import { getDb } from "@/server/db/client";
 import * as s from "@/server/db/schema";
 import { bookingsOn, getSettings, TIER_LABEL, withDetails, type BookingDetail } from "./common";
+import { getPackages } from "./planning";
 
 const DAY_SHORT = ["Paz", "Pzt", "Sal", "Çar", "Per", "Cum", "Cmt"];
 const DAY_LONG = ["Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"];
@@ -46,6 +47,7 @@ function toCourtBooking(b: BookingDetail): CourtBooking {
     format: b.format ?? undefined,
     groupName: b.title ?? undefined,
     groupSize: b.members.length,
+    exclusive: b.exclusive,
   };
 }
 
@@ -91,6 +93,12 @@ export async function getDashboard(now: Now, weather: Weather | null) {
     const occupant =
       mine.find((b) => b.status === "in_progress") ??
       mine.find((b) => b.status === "scheduled" && toMinutes(b.start) <= nowMin && nowMin < toMinutes(b.end));
+    // Paylaşımlı kortta aynı anda ikinci ders
+    const partner =
+      occupant &&
+      mine.find(
+        (b) => b.id !== occupant.id && (b.status === "in_progress" || (b.status === "scheduled" && toMinutes(b.start) <= nowMin && nowMin < toMinutes(b.end))),
+      );
     const next = mine.find((b) => b.status === "scheduled" && toMinutes(b.start) > nowMin);
     const block = blocks.find((k) => k.courtId === c.id && k.date === today && toMinutes(k.start) <= nowMin && nowMin < toMinutes(k.end));
     return {
@@ -100,6 +108,7 @@ export async function getDashboard(now: Now, weather: Weather | null) {
       environment: c.environment,
       balloon: c.balloon,
       occupant: occupant && toCourtBooking(occupant),
+      sharedWith: partner ? `${partner.members[0]?.name ?? ""}${partner.coach ? ` (${partner.coach.name})` : ""}` : undefined,
       next: next && { start: next.start, member: next.title ?? next.members[0]?.name ?? "Rezervasyon" },
       maintenance: block && { start: block.start, end: block.end, reason: block.reason },
     };
@@ -125,7 +134,7 @@ export async function getDashboard(now: Now, weather: Weather | null) {
         : b.members.length > 1
           ? `+${b.members.length - 1} oyuncu`
           : first
-            ? TIER_LABEL[first.tier]
+            ? `${TIER_LABEL[first.tier]}${b.exclusive ? " · paylaşımsız" : ""}`
             : "",
       coach: b.coach?.name,
       format: b.format ?? undefined,
@@ -216,12 +225,14 @@ export async function getDashboard(now: Now, weather: Weather | null) {
       .where(and(eq(s.bookings.paid, false), ne(s.bookings.status, "cancelled"), between(s.bookings.date, addDays(today, -30), addDays(today, 7))))
       .orderBy(asc(s.bookings.date), asc(s.bookings.start)),
   );
-  if (unpaid.length) {
-    const names = [...new Set(unpaid.map((b) => b.members[0]?.name).filter(Boolean))];
+  const unpaidPackages = (await getPackages({ activeOnly: false })).filter((p) => !p.paid && p.price > 0);
+  if (unpaid.length || unpaidPackages.length) {
+    const names = [...new Set([...unpaidPackages.flatMap((p) => p.memberNames), ...unpaid.map((b) => b.members[0]?.name)].filter(Boolean))];
+    const total = unpaid.reduce((a, b) => a + b.price, 0) + unpaidPackages.reduce((a, p) => a + p.price, 0);
     alerts.push({
       id: "unpaid", tone: "warn", icon: "wallet", href: "/odemeler", action: "Tahsil et",
-      title: `${unpaid.length} ödeme bekliyor`,
-      detail: `${names.slice(0, 2).join(", ")}${names.length > 2 ? ` +${names.length - 2}` : ""} · ${formatCurrency(unpaid.reduce((a, b) => a + b.price, 0))}`,
+      title: `${unpaid.length + unpaidPackages.length} ödeme bekliyor`,
+      detail: `${names.slice(0, 2).join(", ")}${names.length > 2 ? ` +${names.length - 2}` : ""} · ${formatCurrency(total)}`,
     });
   }
 
@@ -339,7 +350,11 @@ export async function getShellCounts(now: Now) {
     .select({ n: sql<number>`count(*)::int`, total: sql<number>`coalesce(sum(${s.bookings.price}), 0)::int` })
     .from(s.bookings)
     .where(and(eq(s.bookings.paid, false), ne(s.bookings.status, "cancelled"), between(s.bookings.date, addDays(now.date, -30), addDays(now.date, 7))));
-  return { bookingsToday: todayCount.n, unpaidCount: unpaid.n, unpaidTotal: unpaid.total };
+  const [pkgs] = await db
+    .select({ n: sql<number>`count(*)::int`, total: sql<number>`coalesce(sum(${s.packages.price}), 0)::int` })
+    .from(s.packages)
+    .where(and(eq(s.packages.paid, false), ne(s.packages.status, "cancelled"), sql`${s.packages.price} > 0`));
+  return { bookingsToday: todayCount.n, unpaidCount: unpaid.n + pkgs.n, unpaidTotal: unpaid.total + pkgs.total };
 }
 
 /** Hızlı işlem menüsündeki "Şu an müsait" önerisi */
