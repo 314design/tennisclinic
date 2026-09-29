@@ -3,7 +3,7 @@
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, type CSSProperties, type MouseEvent } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type MouseEvent, type PointerEvent as ReactPointerEvent } from "react";
 import { fromMinutes } from "@/lib/clock";
 import { toMinutes } from "@/lib/format";
 import styles from "./TimeGrid.module.css";
@@ -33,6 +33,10 @@ export interface GridEvent {
   unpaid?: boolean;
   /** 1 kişilik paylaşımlı özel ders: aynı sütunda çakışınca yan yana çizilir */
   half?: boolean;
+  /** Sürükle-bırak ile taşınabilir (planlanmış, gelecekteki seans) */
+  draggable?: boolean;
+  /** Haftalık sabit serinin bir dersi */
+  series?: boolean;
 }
 
 interface PickMode {
@@ -53,6 +57,14 @@ interface TimeGridProps {
   emptyHref?: string;
   pick?: PickMode;
   minColumnWidth?: number;
+  /** Taşınabilir bir seans başka saate/sütuna bırakıldığında */
+  onMove?: (event: GridEvent, columnId: string, start: string) => void;
+}
+
+interface DragState {
+  event: GridEvent;
+  columnId: string;
+  start: string;
 }
 
 const SLOT = 30;
@@ -76,9 +88,18 @@ function lanes(events: GridEvent[]) {
   return map;
 }
 
-export function TimeGrid({ open, close, columns, events, nowTime, emptyHref, pick, minColumnWidth = 150 }: TimeGridProps) {
+const DRAG_THRESHOLD = 6;
+const LONG_PRESS_MS = 350;
+
+export function TimeGrid({ open, close, columns, events, nowTime, emptyHref, pick, minColumnWidth = 150, onMove }: TimeGridProps) {
   const router = useRouter();
   const [hover, setHover] = useState<{ columnId: string; start: string } | null>(null);
+  const [drag, setDrag] = useState<DragState | null>(null);
+  const columnRefs = useRef(new Map<string, HTMLDivElement>());
+  /** Sürükleme bitince bağlantının tıklanmasını engeller */
+  const suppressClick = useRef(false);
+  const cleanup = useRef<(() => void) | null>(null);
+  useEffect(() => () => cleanup.current?.(), []);
   const openMin = toMinutes(open);
   const closeMin = toMinutes(close);
   const height = ((closeMin - openMin) / SLOT) * SLOT_PX;
@@ -105,11 +126,70 @@ export function TimeGrid({ open, close, columns, events, nowTime, emptyHref, pic
     return (col.unavailable ?? []).some((u) => s < toMinutes(u.end) && toMinutes(u.start) < e);
   };
 
+  /** Seansı tutup sürükleme: fare ile hemen, dokunmatikte basılı tutunca başlar */
+  const startDrag = (ev: GridEvent, e: ReactPointerEvent<HTMLElement>) => {
+    if (!onMove || !ev.draggable || (e.pointerType === "mouse" && e.button !== 0)) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const length = toMinutes(ev.end) - toMinutes(ev.start);
+    const grab = Math.floor((e.clientY - rect.top) / SLOT_PX) * SLOT;
+    const origin = { x: e.clientX, y: e.clientY };
+    const touch = e.pointerType !== "mouse";
+    let active = !touch;
+    let moved = false;
+    let last: DragState | null = null;
+
+    const target = (x: number, y: number): DragState | null => {
+      let best: { id: string; rect: DOMRect } | null = null;
+      for (const [id, el] of columnRefs.current) {
+        const r = el.getBoundingClientRect();
+        if (x >= r.left && x <= r.right) best = { id, rect: r };
+      }
+      if (!best) return last;
+      const raw = openMin + Math.floor((y - best.rect.top) / SLOT_PX) * SLOT - grab;
+      const m = Math.max(openMin, Math.min(raw, closeMin - length));
+      return { event: ev, columnId: best.id, start: fromMinutes(m) };
+    };
+    const onMoveEvt = (me: PointerEvent) => {
+      const dist = Math.hypot(me.clientX - origin.x, me.clientY - origin.y);
+      if (!active) {
+        if (dist > DRAG_THRESHOLD) finish(false);
+        return;
+      }
+      if (!moved && dist < DRAG_THRESHOLD) return;
+      moved = true;
+      last = target(me.clientX, me.clientY);
+      setDrag(last);
+    };
+    const blockScroll = (te: TouchEvent) => active && te.preventDefault();
+    const timer = touch ? window.setTimeout(() => { active = true; setDrag({ event: ev, columnId: ev.columnId, start: ev.start }); }, LONG_PRESS_MS) : 0;
+    const finish = (commit: boolean) => {
+      window.clearTimeout(timer);
+      window.removeEventListener("pointermove", onMoveEvt);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onCancel);
+      window.removeEventListener("touchmove", blockScroll);
+      cleanup.current = null;
+      if (active && (moved || touch)) {
+        suppressClick.current = true;
+        window.setTimeout(() => (suppressClick.current = false), 0);
+      }
+      setDrag(null);
+      if (commit && last && (last.columnId !== ev.columnId || last.start !== ev.start)) onMove(ev, last.columnId, last.start);
+    };
+    const onUp = () => finish(moved);
+    const onCancel = () => finish(false);
+    window.addEventListener("pointermove", onMoveEvt);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onCancel);
+    window.addEventListener("touchmove", blockScroll, { passive: false });
+    cleanup.current = () => finish(false);
+  };
+
   const interactive = !!(emptyHref || pick);
   const ok = (col: GridColumn, start: string) => (pick ? pick.canStart(col.id, start) : !isUnavailable(col, start));
 
   const onClick = (col: GridColumn, e: MouseEvent<HTMLDivElement>) => {
-    if ((e.target as HTMLElement).closest("a")) return;
+    if (suppressClick.current || (e.target as HTMLElement).closest("a")) return;
     const start = slotAt(e);
     if (!start || !ok(col, start)) return;
     if (pick) pick.onPick(col.id, start);
@@ -139,11 +219,15 @@ export function TimeGrid({ open, close, columns, events, nowTime, emptyHref, pic
           return (
             <div
               key={col.id}
+              ref={(el) => {
+                if (el) columnRefs.current.set(col.id, el);
+                else columnRefs.current.delete(col.id);
+              }}
               className={`${styles.column} ${interactive ? styles.interactive : ""}`}
               style={{ height, backgroundSize: `100% ${SLOT_PX * 2}px` }}
               onClick={(e) => onClick(col, e)}
               onMouseMove={(e) => {
-                if (!interactive || (e.target as HTMLElement).closest("a")) return setHover(null);
+                if (!interactive || drag || (e.target as HTMLElement).closest("a")) return setHover(null);
                 const start = slotAt(e);
                 setHover(start ? { columnId: col.id, start } : null);
               }}
@@ -158,7 +242,21 @@ export function TimeGrid({ open, close, columns, events, nowTime, emptyHref, pic
                 .map((ev) => {
                   const lane = laneMap.get(ev.id);
                   const laneStyle: CSSProperties = lane === undefined ? {} : lane === 0 ? { right: "50%" } : { left: "50%" };
-                  const cls = `${styles.event} ${KIND_CLASS[ev.kind]} ${ev.live ? styles.live : ""} ${ev.unpaid ? styles.unpaid : ""}`;
+                  const movable = !!onMove && ev.draggable;
+                  const cls = `${styles.event} ${KIND_CLASS[ev.kind]} ${ev.live ? styles.live : ""} ${ev.unpaid ? styles.unpaid : ""} ${movable ? styles.movable : ""} ${drag?.event.id === ev.id ? styles.dragging : ""}`;
+                  const dragProps = movable
+                    ? {
+                        draggable: false,
+                        onPointerDown: (e: ReactPointerEvent<HTMLElement>) => startDrag(ev, e),
+                        onClickCapture: (e: MouseEvent) => {
+                          if (suppressClick.current) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                          }
+                        },
+                        onContextMenu: (e: MouseEvent) => e.preventDefault(),
+                      }
+                    : {};
                   const body = (
                     <>
                       <strong className="ellipsis">{ev.title}</strong>
@@ -166,7 +264,7 @@ export function TimeGrid({ open, close, columns, events, nowTime, emptyHref, pic
                     </>
                   );
                   return ev.href ? (
-                    <Link key={ev.id} href={ev.href} className={cls} style={{ ...pos(ev.start, ev.end), ...laneStyle }} title={`${ev.start}–${ev.end} · ${ev.title}${ev.sub ? ` · ${ev.sub}` : ""}`}>
+                    <Link key={ev.id} href={ev.href} className={cls} style={{ ...pos(ev.start, ev.end), ...laneStyle }} title={`${ev.start}–${ev.end} · ${ev.title}${ev.sub ? ` · ${ev.sub}` : ""}${movable ? " · taşımak için sürükleyin" : ""}`} {...dragProps}>
                       {body}
                     </Link>
                   ) : (
@@ -176,6 +274,12 @@ export function TimeGrid({ open, close, columns, events, nowTime, emptyHref, pic
                   );
                 })}
 
+              {drag?.columnId === col.id && (
+                <div className={`${styles.ghost} ${styles.dropGhost}`} style={pos(drag.start, fromMinutes(toMinutes(drag.start) + toMinutes(drag.event.end) - toMinutes(drag.event.start)))} aria-hidden="true">
+                  <strong>{drag.start}–{fromMinutes(toMinutes(drag.start) + toMinutes(drag.event.end) - toMinutes(drag.event.start))}</strong>
+                  <span className="ellipsis">{drag.event.title}</span>
+                </div>
+              )}
               {selectedHere && (
                 <div className={`${styles.ghost} ${styles.selected}`} style={pos(selectedHere, fromMinutes(toMinutes(selectedHere) + duration))}>
                   <strong>{selectedHere}–{fromMinutes(toMinutes(selectedHere) + duration)}</strong>

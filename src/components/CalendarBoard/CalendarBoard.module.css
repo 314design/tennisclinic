@@ -1,0 +1,18 @@
+.body { display: flex; flex-direction: column; gap: 14px; }
+.change { display: flex; align-items: center; gap: 12px; }
+.change > :global(.icon) { flex-shrink: 0; color: var(--text-2); }
+.slot {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-alt);
+}
+.slot span { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text-2); }
+.slot strong { font-size: 18px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.slot em { font-size: 13px; font-style: normal; color: var(--text-2); }
+.next { border-color: var(--primary); background: var(--accent-soft); }
+.next span, .next strong { color: var(--primary); }

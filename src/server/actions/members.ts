@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { addDays, clubNow } from "@/lib/clock";
-import { groupLessonPrice, validityFor } from "@/lib/pricing";
+import { groupLessonPrice, MAX_PRIVATE_PEOPLE, validityFor } from "@/lib/pricing";
 import { extendMembership } from "@/server/membership";
 import { getPriceList } from "@/server/queries/pricing";
 import { formatCurrency } from "@/lib/format";
@@ -42,17 +42,19 @@ const readMember = (fd: FormData) =>
 
 export type FormState = { error?: string; saved?: boolean } | undefined;
 
-/**
- * Yeni üye. Üyelik bitişi elle girilmez: ders kotası (grup dersi hakkı) seçildiyse
- * başlangıç + kotanın geçerlilik süresi (Fiyatlar ekranı) olarak hesaplanır.
- */
-export async function createMember(_: FormState, fd: FormData): Promise<FormState> {
-  const parsed = readMember(fd);
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Form bilgilerini kontrol edin." };
-  const quota = [0, 8, 16].includes(Number(fd.get("quota"))) ? Number(fd.get("quota")) : 0;
-  const paid = fd.get("paid") === "on";
+const groupSchema = memberSchema.omit({ name: true, phone: true }).extend({
+  people: z
+    .array(z.object({ name: memberSchema.shape.name, phone: memberSchema.shape.phone }))
+    .min(2, "Grup için en az 2 kişi girin")
+    .max(6, "Tek seferde en fazla 6 kişi eklenebilir"),
+  then: z.enum(["save", "group", "private"]),
+});
+
+type MemberData = Omit<z.infer<typeof memberSchema>, "name" | "phone"> & { name: string; phone?: string };
+
+/** Üyeyi ve varsa ders kotasını (hak + ödeme) kaydeder */
+async function insertMember(d: MemberData, quota: number, paid: boolean, note = "üye olarak kaydedildi") {
   const db = await getDb();
-  const d = parsed.data;
   const list = await getPriceList(d.membershipStart);
   const days = validityFor(list, quota);
   const [row] = await db
@@ -64,9 +66,57 @@ export async function createMember(_: FormState, fd: FormData): Promise<FormStat
     const amount = groupLessonPrice(list, 1) * quota;
     if (paid && amount) await db.insert(s.payments).values({ memberId: row.id, amount, date: clubNow().date, description: `${quota} seanslık ders kotası` });
   }
-  await db.insert(s.activities).values({ memberId: row.id, subject: row.name, text: "üye olarak kaydedildi" });
+  await db.insert(s.activities).values({ memberId: row.id, subject: row.name, text: note });
+  return row;
+}
+
+const readQuota = (fd: FormData) => ([0, 8, 16].includes(Number(fd.get("quota"))) ? Number(fd.get("quota")) : 0);
+
+/**
+ * Yeni üye. Üyelik bitişi elle girilmez: ders kotası (grup dersi hakkı) seçildiyse
+ * başlangıç + kotanın geçerlilik süresi (Fiyatlar ekranı) olarak hesaplanır.
+ * "Grup olarak ekle" modunda birlikte gelen kişiler ortak bilgilerle tek seferde kaydedilir.
+ */
+export async function createMember(_: FormState, fd: FormData): Promise<FormState> {
+  if (fd.get("mode") === "group") return createMembers(fd);
+  const parsed = readMember(fd);
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Form bilgilerini kontrol edin." };
+  const row = await insertMember(parsed.data, readQuota(fd), fd.get("paid") === "on");
   revalidatePath("/", "layout");
   redirect(`/uyeler/${row.id}`);
+}
+
+async function createMembers(fd: FormData): Promise<FormState> {
+  const phones = fd.getAll("phone");
+  const people = fd
+    .getAll("name")
+    .map((name, i) => ({ name: String(name).trim(), phone: String(phones[i] ?? "").trim() || undefined }))
+    .filter((p) => p.name);
+  const parsed = groupSchema.safeParse({
+    people,
+    tier: fd.get("tier"),
+    level: fd.get("level") || undefined,
+    membershipStart: fd.get("membershipStart") || "",
+    then: fd.get("then"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Form bilgilerini kontrol edin." };
+  const { people: list, then, ...shared } = parsed.data;
+  if (then === "private" && list.length > MAX_PRIVATE_PEOPLE) {
+    return { error: `Özel ders en fazla ${MAX_PRIVATE_PEOPLE} kişilik; ${list.length} kişi için grup dersi seçin.` };
+  }
+  const quota = readQuota(fd);
+  const paid = fd.get("paid") === "on";
+  const ids: number[] = [];
+  for (const p of list) {
+    const others = list.filter((o) => o !== p).map((o) => o.name.split(/\s+/)[0]).join(", ");
+    const row = await insertMember({ ...shared, ...p }, quota, paid, `grup olarak kaydedildi (${others} ile)`);
+    ids.push(row.id);
+  }
+  revalidatePath("/", "layout");
+  const q = ids.join(",");
+  if (then === "group") redirect(`/dersler/gruba-katil?uyeler=${q}`);
+  if (then === "private") redirect(`/rezervasyonlar/yeni?tur=ozel&uyeler=${q}`);
+  redirect(`/uyeler?yeni=${q}`);
 }
 
 export async function updateMember(id: number, _: FormState, fd: FormData): Promise<FormState> {

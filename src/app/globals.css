@@ -159,6 +159,8 @@ button { cursor: pointer; }
 .notice--ok { background: var(--accent-soft); color: var(--primary); border: 1px solid var(--accent-line); }
 .notice--info { background: var(--surface-alt); color: var(--neutral-ink); }
 .notice ul { margin-top: 6px; padding-left: 18px; list-style: disc; }
+.notice a { color: inherit; font-weight: 800; text-decoration: underline; }
+.table tr.row-highlight td { background: var(--accent-soft); }
 
 .table-wrap { overflow-x: auto; margin: 0 -22px; padding: 0 22px; }
 .table { width: 100%; border-collapse: collapse; font-size: 14px; }

@@ -18,12 +18,14 @@ interface Props {
   members: MemberOption[];
   priceList: PriceList;
   onCreated: (id: number) => void;
+  /** Önceden seçili üyeler */
+  initialSelected?: number[];
 }
 
 /** Kort kiralama: ücret saat bandına göre otomatik hesaplanır */
-export function ReservationForm({ court, date, today, start, end, members, priceList, onCreated }: Props) {
+export function ReservationForm({ court, date, today, start, end, members, priceList, onCreated, initialSelected }: Props) {
   const [format, setFormat] = useState<"singles" | "doubles">("singles");
-  const [selected, setSelected] = useState<number[]>([]);
+  const [selected, setSelected] = useState<number[]>(() => (initialSelected ?? []).slice(0, 4));
   const [paid, setPaid] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();

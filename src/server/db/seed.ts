@@ -51,6 +51,7 @@ const GROUPS = [
   { title: "Başlangıç grubu", level: "Başlangıç", capacity: 6, coach: 2, court: 1, days: [1, 3, 5], start: "17:00", end: "18:30", members: [14, 15, 20, 26] },
   { title: "Çiftler grubu", level: "Orta", capacity: 4, coach: 3, court: 2, days: [1, 3], start: "19:00", end: "20:30", members: [16, 17, 19, 21] },
   { title: "Performans grubu", level: "İleri", capacity: 6, coach: 0, court: 0, days: [6], start: "10:00", end: "12:00", members: [0, 1, 2, 6, 7] },
+  { title: "Hafta sonu başlangıç", level: "Başlangıç", capacity: 6, coach: 2, court: 1, days: [7], start: "11:00", end: "12:30", members: [25, 27] },
 ];
 
 const PRICE = { reservation: 900, groupPerMember: 400 };

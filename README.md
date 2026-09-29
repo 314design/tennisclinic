@@ -47,6 +47,12 @@ Hava durumu [Open-Meteo](https://open-meteo.com)'dan (anahtar gerektirmez) Ayarl
 - **Yeni Rezervasyon:** tür (grup dersi / özel ders / kort kiralama) seçilir, takvimde boş saate tıklanır; dolu ve
   antrenörün çalışmadığı saatler gölgeli görünür. Ücret türe ve saat bandına göre otomatik hesaplanır (kiralama saatlik,
   grup dersi kişi başı — ders hakkı olanlar hakkından düşer). Takvim ve antrenör takviminde boş saate tıklayarak da açılır.
+- **Grup olarak üye ekleme:** Üye Ekle'de "Grup olarak ekle" ile birlikte gelen 2–6 kişi tek formda kaydedilir
+  (üyelik tipi, seviye, başlangıç ve kota ortak). Kayıttan sonra ekip, yeterli boş yeri olan bir grup dersine
+  (önümüzdeki haftalardaki aynı grup dersleriyle birlikte) eklenir ya da ekibe özel ders açılır (üyeler seçili gelir).
+- **Sürükle-bırak:** Takvim'de planlanmış bir seans sürüklenerek aynı gün başka saate/korta taşınır; "saat değişiyor"
+  onayından sonra antrenör çalışma saati, çakışma, paylaşımlı kort ve bakım kuralları yeniden denetlenir.
+  Dokunmatik ekranda seansa basılı tutup sürüklenir.
 - **Üyelik süresi:** üye başlangıç tarihi + ders kotası; bitiş, kotanın geçerlilik süresine göre (Fiyatlar ekranı) hesaplanır.
 - **Ders aktarma:** izinli antrenörün dersleri uyarı olarak görünür; başka hocanın müsait gün/saatine aktarılır.
 - **Yedek ve Excel:** Ayarlar'da tam yedek (`/api/yedek`, JSON) ve seçilen tarih aralığı için Excel özet raporu

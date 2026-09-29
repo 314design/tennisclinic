@@ -19,15 +19,21 @@ interface Props {
   levels: readonly string[];
   perPersonFee: number;
   onCreated: (id: number) => void;
+  /** Önceden seçili üyeler */
+  initialSelected?: number[];
   /** Takvimden seçilen kort */
   defaultCourtId?: number;
 }
 
-export function GroupLessonForm({ coach, date, today, slot, members, levels, perPersonFee, onCreated, defaultCourtId }: Props) {
+export function GroupLessonForm({ coach, date, today, slot, members, levels, perPersonFee, onCreated, defaultCourtId, initialSelected }: Props) {
   const [courtId, setCourtId] = useState(slot.courts.find((c) => c.id === defaultCourtId)?.id ?? slot.courts.find((c) => c.state === "free")?.id ?? slot.courts[0].id);
-  const [selected, setSelected] = useState<number[]>([]);
+  const [selected, setSelected] = useState<number[]>(() => (initialSelected ?? []).slice(0, MAX_GROUP));
   const [title, setTitle] = useState("");
-  const [level, setLevel] = useState<string>(levels[0]);
+  const [level, setLevel] = useState<string>(() => {
+    // Önceden seçili ekibin ortak seviyesi varsa o seçilir
+    const own = [...new Set((initialSelected ?? []).map((id) => members.find((m) => m.id === id)?.level))];
+    return own.length === 1 && own[0] && levels.includes(own[0]) ? own[0] : levels[0];
+  });
   const [capacity, setCapacity] = useState(MAX_GROUP);
   const [useMakeup, setUseMakeup] = useState(true);
   const [error, setError] = useState<string | null>(null);
