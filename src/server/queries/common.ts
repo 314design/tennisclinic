@@ -26,7 +26,7 @@ export type CoachRow = typeof s.coaches.$inferSelect;
 export type CourtRow = typeof s.courts.$inferSelect;
 
 export interface BookingDetail extends BookingRow {
-  members: (Pick<MemberRow, "id" | "name" | "initials" | "tier" | "lessonCredits" | "makeupCredits"> & { arrived: boolean; usedMakeup: boolean })[];
+  members: (Pick<MemberRow, "id" | "name" | "initials" | "tier" | "lessonCredits" | "makeupCredits"> & { arrived: boolean; usedMakeup: boolean; charged: boolean })[];
   coach: Pick<CoachRow, "id" | "name"> | null;
   court: Pick<CourtRow, "id" | "name" | "surface" | "environment" | "balloon">;
 }
@@ -42,6 +42,7 @@ export async function withDetails(rows: BookingRow[]): Promise<BookingDetail[]> 
         bookingId: s.bookingMembers.bookingId,
         arrived: s.bookingMembers.arrived,
         usedMakeup: s.bookingMembers.usedMakeup,
+        charged: s.bookingMembers.charged,
         id: s.members.id,
         name: s.members.name,
         initials: s.members.initials,

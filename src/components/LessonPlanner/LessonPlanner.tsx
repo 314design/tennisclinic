@@ -195,6 +195,7 @@ export function LessonPlanner(props: LessonPlannerProps) {
                 slot={slot}
                 members={members}
                 levels={levels}
+                perPersonFee={props.priceList.groupPerPerson}
                 onCreated={(id) => router.push(`/seanslar/${id}`)}
               />
             )

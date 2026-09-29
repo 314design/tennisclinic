@@ -44,6 +44,11 @@ Hava durumu [Open-Meteo](https://open-meteo.com)'dan (anahtar gerektirmez) Ayarl
   paylaşımsız kort seans başına fark (varsayılan +700 ₺) ile kortu yalnızca o derse ayırır.
 - **Grup dersi önceliği:** özel ders ya da kiralama grup dersinin saatine yazılamaz; grup dersi eklenirken
   çakışan özel dersler onayla iptal edilir ve üyelere telafi hakkı verilir.
+- **Yeni Rezervasyon:** tür (grup dersi / özel ders / kort kiralama) seçilir, takvimde boş saate tıklanır; dolu ve
+  antrenörün çalışmadığı saatler gölgeli görünür. Ücret türe ve saat bandına göre otomatik hesaplanır (kiralama saatlik,
+  grup dersi kişi başı — ders hakkı olanlar hakkından düşer). Takvim ve antrenör takviminde boş saate tıklayarak da açılır.
+- **Üyelik süresi:** üye başlangıç tarihi + ders kotası; bitiş, kotanın geçerlilik süresine göre (Fiyatlar ekranı) hesaplanır.
+- **Ders aktarma:** izinli antrenörün dersleri uyarı olarak görünür; başka hocanın müsait gün/saatine aktarılır.
 - **Kortlar:** 2 açık + 1 kapalı kort; açık kort kış için "Balon Kort" yapılabilir (yağmur uyarısı dışında kalır),
   bakım takvimi.
 - **Üyeler** (ders/telafi hakkı, paket, üyelik bitişi, hak hareketleri), **Antrenörler** (haftalık saatler, izin),

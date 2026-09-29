@@ -32,18 +32,19 @@ interface Props {
   packages: PackageOption[];
   priceList: PriceList;
   onCreated: (id: number) => void;
+  /** Takvimden seçilen kort */
+  defaultCourtId?: number;
 }
 
 const sameSet = (a: number[], b: number[]) => a.length === b.length && a.every((x) => b.includes(x));
 
-export function PrivateLessonForm({ coach, date, today, slot, members, packages, priceList, onCreated }: Props) {
-  const [courtId, setCourtId] = useState(slot.courts.find((c) => c.state === "free")?.id ?? slot.courts[0].id);
+export function PrivateLessonForm({ coach, date, today, slot, members, packages, priceList, onCreated, defaultCourtId }: Props) {
+  const [courtId, setCourtId] = useState(slot.courts.find((c) => c.id === defaultCourtId)?.id ?? slot.courts.find((c) => c.state === "free")?.id ?? slot.courts[0].id);
   const [selected, setSelected] = useState<number[]>([]);
   const [exclusive, setExclusive] = useState(false);
   const [source, setSource] = useState<Source>("newPackage");
   const [packageId, setPackageId] = useState<number | null>(null);
   const [sessions, setSessions] = useState<8 | 16>(8);
-  const [priceOverride, setPriceOverride] = useState<number | null>(null);
   const [paid, setPaid] = useState(false);
   const [fixWeekly, setFixWeekly] = useState(true);
   const [weeks, setWeeks] = useState(8);
@@ -64,11 +65,10 @@ export function PrivateLessonForm({ coach, date, today, slot, members, packages,
     source === "package" && !matchingPackages.length ? "newPackage" : source === "makeup" && !makeupAvailable ? "newPackage" : source;
   const effectiveExclusive = effectiveSource === "package" ? !!pkg?.exclusive : exclusive && canBeExclusive(people);
 
-  const listPrice =
+  const price =
     effectiveSource === "newPackage"
       ? packagePrice(priceList, { band, people: Math.max(people, 1), sessions, exclusive: effectiveExclusive })
       : singleLessonPrice(priceList, { band, people: Math.max(people, 1), exclusive: effectiveExclusive });
-  const price = priceOverride ?? listPrice;
 
   const maxWeeks =
     effectiveSource === "newPackage" ? sessions : effectiveSource === "package" ? (pkg?.remaining ?? 1) : effectiveSource === "makeup" ? (member?.makeupCredits ?? 1) : 12;
@@ -83,7 +83,6 @@ export function PrivateLessonForm({ coach, date, today, slot, members, packages,
       const res = await createPrivateLessons({
         coachId: coach.id, courtId, date, start: slot.start, end: slot.end, memberIds: selected,
         exclusive: effectiveExclusive, source: effectiveSource, packageId: pkg?.id, sessions,
-        price: effectiveSource === "newPackage" || effectiveSource === "single" ? price : undefined,
         paid, weeks: weekCount, skipConflicts,
       });
       if (res.ok) onCreated(res.ids[0]);
@@ -93,7 +92,6 @@ export function PrivateLessonForm({ coach, date, today, slot, members, packages,
       }
     });
 
-  const resetPrice = () => setPriceOverride(null);
   const canSubmit = people >= 1 && people <= MAX_PRIVATE_PEOPLE && !sharedCourtProblem && (effectiveSource !== "package" || !!pkg);
 
   return (
@@ -134,7 +132,7 @@ export function PrivateLessonForm({ coach, date, today, slot, members, packages,
 
           {canBeExclusive(people) && effectiveSource !== "package" && (
             <label className="check">
-              <input type="checkbox" checked={exclusive} onChange={(e) => { setExclusive(e.target.checked); resetPrice(); }} />
+              <input type="checkbox" checked={exclusive} onChange={(e) => { setExclusive(e.target.checked); }} />
               <span>
                 <Lock className="icon icon--sm" aria-hidden="true" style={{ verticalAlign: "-2px", marginRight: 4 }} />
                 Paylaşımsız kort (+{formatCurrency(priceList.exclusiveSurcharge)} / seans)
@@ -147,7 +145,7 @@ export function PrivateLessonForm({ coach, date, today, slot, members, packages,
             <legend className="field__label">Ödeme</legend>
             <div className="pills">
               <label className="pill">
-                <input type="radio" name="source" checked={effectiveSource === "newPackage"} onChange={() => { setSource("newPackage"); resetPrice(); }} />
+                <input type="radio" name="source" checked={effectiveSource === "newPackage"} onChange={() => { setSource("newPackage"); }} />
                 <span>Yeni paket</span>
               </label>
               <label className="pill">
@@ -155,7 +153,7 @@ export function PrivateLessonForm({ coach, date, today, slot, members, packages,
                 <span>Mevcut paket{matchingPackages.length ? ` (${matchingPackages.length})` : ""}</span>
               </label>
               <label className="pill">
-                <input type="radio" name="source" checked={effectiveSource === "single"} onChange={() => { setSource("single"); resetPrice(); }} />
+                <input type="radio" name="source" checked={effectiveSource === "single"} onChange={() => { setSource("single"); }} />
                 <span>Tek ders</span>
               </label>
               {makeupAvailable && (
@@ -173,12 +171,12 @@ export function PrivateLessonForm({ coach, date, today, slot, members, packages,
                 <div className="pills">
                   {([8, 16] as const).map((n) => (
                     <label key={n} className="pill">
-                      <input type="radio" name="sessions" checked={sessions === n} onChange={() => { setSessions(n); setWeeks(n); resetPrice(); }} />
+                      <input type="radio" name="sessions" checked={sessions === n} onChange={() => { setSessions(n); setWeeks(n); }} />
                       <span>{n} seanslık paket</span>
                     </label>
                   ))}
                 </div>
-                <PriceInput price={price} listPrice={listPrice} onChange={setPriceOverride} people={Math.max(people, 1)} sessions={sessions} />
+                <PriceSummary price={price} people={Math.max(people, 1)} sessions={sessions} />
               </>
             )}
             {effectiveSource === "package" && (
@@ -198,7 +196,7 @@ export function PrivateLessonForm({ coach, date, today, slot, members, packages,
               </label>
             )}
             {effectiveSource === "single" && (
-              <PriceInput price={price} listPrice={listPrice} onChange={setPriceOverride} people={Math.max(people, 1)} sessions={1} />
+              <PriceSummary price={price} people={Math.max(people, 1)} sessions={1} />
             )}
             {effectiveSource === "makeup" && <p className="field__hint">Ders ücretsizdir; üyenin telafi hakkından düşülür.</p>}
             {(effectiveSource === "newPackage" || effectiveSource === "single") && price > 0 && (
@@ -242,7 +240,7 @@ export function PrivateLessonForm({ coach, date, today, slot, members, packages,
           </div>
         </div>
 
-        <MemberPicker members={members} selected={selected} onChange={(ids) => { setSelected(ids); resetPrice(); setConflicts(null); }} max={MAX_PRIVATE_PEOPLE} label={`Öğrenciler (1–${MAX_PRIVATE_PEOPLE})`} />
+        <MemberPicker members={members} selected={selected} onChange={(ids) => { setSelected(ids); setConflicts(null); }} max={MAX_PRIVATE_PEOPLE} label={`Öğrenciler (1–${MAX_PRIVATE_PEOPLE})`} />
       </div>
 
       {error && (
@@ -278,25 +276,15 @@ export function PrivateLessonForm({ coach, date, today, slot, members, packages,
   );
 }
 
-function PriceInput({ price, listPrice, onChange, people, sessions }: { price: number; listPrice: number; onChange: (v: number | null) => void; people: number; sessions: number }) {
+/** Fiyat listesinden hesaplanan tutar (elle değiştirilemez; Fiyatlar ekranından yönetilir) */
+function PriceSummary({ price, people, sessions }: { price: number; people: number; sessions: number }) {
   return (
-    <div className="form-grid">
-      <label className="field">
-        <span className="field__label">{sessions > 1 ? "Paket tutarı (grup toplamı, ₺)" : "Ders ücreti (₺)"}</span>
-        <input className="input" type="number" min={0} step={100} value={price} onChange={(e) => onChange(Math.max(0, Number(e.target.value)))} />
-        <span className="field__hint">
-          Seans {formatCurrency(Math.round(price / sessions))}
-          {people > 1 ? ` · kişi başı ${formatCurrency(perPerson(price, people))}` : ""}
-          {price !== listPrice && (
-            <>
-              {" · "}liste fiyatı {formatCurrency(listPrice)}{" "}
-              <button type="button" className="link" style={{ minHeight: 0, padding: 0, border: 0, background: "none", cursor: "pointer" }} onClick={() => onChange(null)}>
-                geri al
-              </button>
-            </>
-          )}
-        </span>
-      </label>
+    <div className={styles.priceLine}>
+      <strong>{formatCurrency(price)}</strong>
+      <span>
+        {sessions > 1 ? `${sessions} seans · seans ${formatCurrency(Math.round(price / sessions))}` : "tek ders"}
+        {people > 1 ? ` · kişi başı ${formatCurrency(perPerson(price, people))}` : ""}
+      </span>
     </div>
   );
 }

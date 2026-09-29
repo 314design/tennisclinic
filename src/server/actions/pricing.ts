@@ -16,6 +16,9 @@ const schema = z.object({
     offpeak: z.object({ "8": row, "16": row }),
     peak: z.object({ "8": row, "16": row }),
   }),
+  rentalHourly: z.object({ offpeak: z.number().int().min(0), peak: z.number().int().min(0) }),
+  groupPerPerson: z.number().int().min(0),
+  validityDays: z.object({ "8": z.number().int().min(1).max(730), "16": z.number().int().min(1).max(730) }),
 });
 
 /**

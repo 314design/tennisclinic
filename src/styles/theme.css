@@ -64,6 +64,19 @@
   --court-maint-net: rgba(94, 106, 96, .5);
   --court-coach: var(--tc-white);
 
+  /* Takvim etkinlik renkleri (grup · özel ders · kort kiralama) */
+  --ev-group-bg: var(--tc-court-green);
+  --ev-group-ink: var(--tc-white);
+  --ev-private-bg: var(--tc-lime-soft);
+  --ev-private-line: #C9E27A;
+  --ev-private-ink: var(--tc-green-night);
+  --ev-rental-bg: #E4EEF7;
+  --ev-rental-line: #A9C3DD;
+  --ev-rental-ink: #1E3F5C;
+  --ev-unavailable: repeating-linear-gradient(135deg, rgba(110, 122, 112, .07) 0 6px, rgba(110, 122, 112, .14) 6px 12px);
+  --ev-pick-ok: rgba(47, 107, 79, .18);
+  --ev-pick-bad: rgba(180, 67, 43, .12);
+
   /* Grafik */
   --chart-bar: #739A86;
   --chart-spark: #8FB3A0;

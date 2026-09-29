@@ -14,6 +14,9 @@ export function PriceListForm({ current, today }: { current: PriceList; today: s
   const [offpeak, setOffpeak] = useState(current.offpeak);
   const [surcharge, setSurcharge] = useState(current.exclusiveSurcharge);
   const [prices, setPrices] = useState(current.packages);
+  const [rental, setRental] = useState(current.rentalHourly);
+  const [groupPerPerson, setGroupPerPerson] = useState(current.groupPerPerson);
+  const [validity, setValidity] = useState(current.validityDays);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -36,7 +39,10 @@ export function PriceListForm({ current, today }: { current: PriceList; today: s
 
   const save = () =>
     startTransition(async () => {
-      const res = await savePriceList({ effectiveFrom, offpeak, exclusiveSurcharge: surcharge, packages: prices });
+      const res = await savePriceList({
+        effectiveFrom, offpeak, exclusiveSurcharge: surcharge, packages: prices,
+        rentalHourly: rental, groupPerPerson, validityDays: validity,
+      });
       setMsg(res.ok ? { ok: true, text: "Fiyat listesi kaydedildi" } : { ok: false, text: res.error });
     });
 
@@ -91,6 +97,33 @@ export function PriceListForm({ current, today }: { current: PriceList; today: s
               )}
             </tbody>
           </table>
+        </div>
+      </section>
+
+      <section className="card">
+        <h2 className="card__title">Kort kiralama, grup dersi ve geçerlilik</h2>
+        <div className="form-grid" style={{ marginTop: 14 }}>
+          <label className="field">
+            <span className="field__label">Kort kiralama · sakin saat (₺ / saat)</span>
+            <input className="input" type="number" min={0} step={50} value={rental.offpeak} onChange={(e) => setRental({ ...rental, offpeak: Math.max(0, Number(e.target.value)) })} />
+          </label>
+          <label className="field">
+            <span className="field__label">Kort kiralama · yoğun saat (₺ / saat)</span>
+            <input className="input" type="number" min={0} step={50} value={rental.peak} onChange={(e) => setRental({ ...rental, peak: Math.max(0, Number(e.target.value)) })} />
+          </label>
+          <label className="field">
+            <span className="field__label">Grup dersi (₺ / kişi / seans)</span>
+            <input className="input" type="number" min={0} step={50} value={groupPerPerson} onChange={(e) => setGroupPerPerson(Math.max(0, Number(e.target.value)))} />
+          </label>
+          <label className="field">
+            <span className="field__label">8 seans geçerlilik (gün)</span>
+            <input className="input" type="number" min={1} max={730} value={validity["8"]} onChange={(e) => setValidity({ ...validity, "8": Math.max(1, Number(e.target.value)) })} />
+          </label>
+          <label className="field">
+            <span className="field__label">16 seans geçerlilik (gün)</span>
+            <input className="input" type="number" min={1} max={730} value={validity["16"]} onChange={(e) => setValidity({ ...validity, "16": Math.max(1, Number(e.target.value)) })} />
+            <span className="field__hint">Üyelik bitiş tarihi, ders kotası bu sürelere göre hesaplanır.</span>
+          </label>
         </div>
       </section>
 
