@@ -1,0 +1,1281 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#122A20">
+<title>Genel Bakış · Tennis Clinic</title>
+<!--
+  Tennis Clinic · Ana panel (1. aşama)
+  Tek dosyalık referans uygulama: HTML + CSS + küçük bir JS.
+
+  Kırılımlar
+  - ≥1366 px : tam yan menü + üst çubuk
+  - 768–1365 : ikonlu dar yan menü
+  - <768 px  : üst uygulama çubuğu, alt sekme çubuğu, + ile açılan hızlı işlem menüsü
+
+  Notlar
+  - Tüm veriler örnektir (saat 17:30 anı); gerçek veriler API'den gelecek.
+  - Renkler :root içindeki token'larda. Muted (#6E7A70) küçük metinde AA kontrastını
+    tutturmadığı için ikincil metinlerde --text-2 (#5E6A60) kullanılıyor.
+  - İkonlar Lucide (ISC lisansı); aşağıdaki SVG sprite içinde. Projede lucide paketi
+    varsa aynı isimlerle ondan kullanılabilir.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Urbanist:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+<style>
+/* =========================================================
+   1. Tasarım token'ları
+   ========================================================= */
+:root {
+  /* Tennis Clinic renk sistemi */
+  --tc-court-green: #2F6B4F;   /* Ana renk · CTA · başlıklar */
+  --tc-ball-lime: #C9F34A;     /* Vurgu · yalnızca öne çıkarmalar */
+  --tc-warm-white: #F7F7F2;    /* Uygulama arka planı */
+  --tc-deep-charcoal: #202521; /* Metin */
+  --tc-soft-sage: #DCE8DF;     /* İkincil yüzeyler */
+  --tc-green-deep: #1C4534;    /* Basılı hal · koyu kartlar */
+  --tc-green-night: #122A20;   /* Yan menü · koyu paneller */
+  --tc-lime-soft: #EFF9D0;     /* Rozet zemini */
+  --tc-sage-soft: #ECF3EE;     /* Alternatif yüzey */
+  --tc-white: #FFFFFF;         /* Kartlar */
+  --tc-muted: #6E7A70;         /* İkonlar */
+  --tc-hairline: #E4E9E2;      /* Ayırıcılar */
+
+  /* Anlamsal token'lar */
+  --bg: var(--tc-warm-white);
+  --surface: var(--tc-white);
+  --surface-alt: var(--tc-sage-soft);
+  --text: var(--tc-deep-charcoal);
+  --text-2: #5E6A60;
+  --icon-muted: var(--tc-muted);
+  --line: var(--tc-hairline);
+  --line-soft: #EEF1EC;
+  --line-strong: #CFDBD2;
+  --primary: var(--tc-court-green);
+  --primary-press: var(--tc-green-deep);
+  --on-primary: #FFFFFF;
+  --accent: var(--tc-ball-lime);
+  --accent-soft: var(--tc-lime-soft);
+  --on-accent: var(--tc-green-night);
+  --neutral-soft: #EEF1EC;
+  --neutral-ink: #4A554C;
+
+  /* Durum renkleri */
+  --warn: #B7791F;
+  --warn-ink: #8F5A0A;
+  --warn-soft: #FBF0D9;
+  --warn-line: #F1DDB0;
+  --warn-border: #E7C98F;
+  --danger: #B4432B;
+
+  /* Grafik */
+  --chart-bar: #739A86;
+  --chart-spark: #8FB3A0;
+
+  /* Yan menü */
+  --nav-bg: var(--tc-green-night);
+  --nav-surface: #1B3327;
+  --nav-border: #274536;
+  --nav-chip: #24402F;
+  --nav-divider: #22392D;
+  --nav-text: #D3DCD5;
+  --nav-icon: #9FB2A5;
+  --nav-label: #8FA396;
+
+  /* Tipografi & ölçüler */
+  --font: "Urbanist", system-ui, sans-serif;
+  --r-xl: 20px;
+  --r-lg: 16px;
+  --r-md: 14px;
+  --r-sm: 10px;
+  --pill: 999px;
+  --sidebar-w: 256px;
+  --gutter: 32px;
+  --shadow-float: 0 8px 18px rgba(18, 42, 32, .22);
+}
+
+/* =========================================================
+   2. Temel
+   ========================================================= */
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-optical-sizing: auto;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.35;
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3, p { margin: 0; }
+ul, ol { margin: 0; padding: 0; list-style: none; }
+a { color: var(--primary); text-decoration: none; }
+a:hover { color: var(--primary-press); }
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+.icon { width: 18px; height: 18px; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.icon--sm { width: 14px; height: 14px; stroke-width: 2.4; }
+.icon--xs { width: 13px; height: 13px; stroke-width: 2.6; }
+.icon--lg { width: 20px; height: 20px; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.ellipsis { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* =========================================================
+   3. Uygulama iskeleti
+   ========================================================= */
+.app { display: grid; grid-template-columns: var(--sidebar-w) minmax(0, 1fr); min-height: 100vh; }
+
+/* --- Yan menü --- */
+.sidebar {
+  position: sticky; top: 0; height: 100vh; overflow-y: auto; scrollbar-width: none;
+  display: flex; flex-direction: column;
+  padding: 22px 16px 20px;
+  background: var(--nav-bg); color: var(--nav-text);
+}
+.sidebar :focus-visible { outline-color: var(--accent); }
+.sidebar__close { display: none; }
+.brand { display: flex; align-items: center; gap: 12px; padding: 4px 8px; color: #F7F7F2; }
+.brand:hover { color: #F7F7F2; }
+.brand__mark { width: 38px; height: 38px; flex-shrink: 0; }
+.brand__text { display: flex; flex-direction: column; gap: 1px; }
+.brand__name { font-size: 18px; font-weight: 800; letter-spacing: -.01em; }
+.brand__sub { font-size: 12px; font-weight: 600; color: var(--nav-label); }
+
+.branch {
+  margin-top: 22px; width: 100%; min-height: 56px;
+  display: flex; align-items: center; gap: 10px; padding: 0 12px;
+  background: var(--nav-surface); border: 1px solid var(--nav-border); border-radius: var(--r-md);
+  color: #F7F7F2; text-align: left;
+}
+.branch__icon { width: 32px; height: 32px; border-radius: 10px; background: #244232; color: var(--accent); display: grid; place-items: center; flex-shrink: 0; }
+.branch__icon .icon { width: 17px; height: 17px; }
+.branch__text { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.branch__label { font-size: 11.5px; font-weight: 600; color: var(--nav-label); }
+.branch__name { font-size: 14.5px; font-weight: 700; }
+.branch__chev { width: 16px; height: 16px; color: var(--nav-label); }
+
+.nav { margin-top: 26px; display: flex; flex-direction: column; gap: 2px; }
+.nav__label { margin: 18px 0 6px; padding: 0 12px; font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--nav-label); }
+.nav__label:first-child { margin-top: 0; }
+.nav__item {
+  height: 42px; display: flex; align-items: center; gap: 12px; padding: 0 12px;
+  border-radius: 12px; color: var(--nav-text); font-size: 14.5px; font-weight: 600;
+}
+.nav__item .icon { width: 19px; height: 19px; stroke-width: 1.9; color: var(--nav-icon); }
+.nav__item:hover { background: rgba(255, 255, 255, .06); color: #FFFFFF; }
+.nav__item[aria-current="page"] { background: var(--accent); color: var(--on-accent); font-weight: 800; }
+.nav__item[aria-current="page"] .icon { color: currentColor; stroke-width: 2; }
+.nav__text { flex: 1; }
+.nav__count { min-width: 28px; height: 22px; padding: 0 8px; border-radius: var(--pill); background: var(--nav-chip); font-size: 12px; font-weight: 700; display: grid; place-items: center; }
+.nav__badge { min-width: 22px; height: 22px; padding: 0 7px; border-radius: var(--pill); background: var(--accent); color: var(--on-accent); font-size: 12px; font-weight: 800; display: grid; place-items: center; }
+
+.sidebar__foot { margin-top: auto; padding-top: 16px; border-top: 1px solid var(--nav-divider); display: flex; flex-direction: column; gap: 2px; }
+.me { margin-top: 12px; display: flex; align-items: center; gap: 10px; padding: 10px 8px 10px 12px; background: var(--nav-surface); border: 1px solid var(--nav-border); border-radius: var(--r-md); }
+.me__text { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.me__name { font-size: 14.5px; font-weight: 700; color: #F7F7F2; }
+.me__role { font-size: 12px; font-weight: 600; color: var(--nav-label); }
+.me__logout { width: 36px; height: 36px; flex-shrink: 0; border: 0; border-radius: 10px; background: transparent; color: var(--nav-icon); display: grid; place-items: center; }
+.me__logout:hover { background: rgba(255, 255, 255, .06); color: #FFFFFF; }
+
+/* --- Avatar --- */
+.avatar { width: 36px; height: 36px; flex-shrink: 0; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 800; background: var(--tc-soft-sage); color: var(--tc-green-deep); }
+.avatar .icon { width: 17px; height: 17px; stroke-width: 2.2; }
+.avatar--lg { width: 42px; height: 42px; font-size: 14px; }
+.avatar--lime { background: var(--accent-soft); color: var(--primary); }
+.avatar--deep { background: var(--tc-green-deep); color: var(--accent-soft); }
+.avatar--group { background: var(--tc-green-deep); color: var(--accent); }
+.avatar--me { width: 38px; height: 38px; font-size: 14px; background: var(--primary); color: var(--accent-soft); }
+.avatar--off { background: var(--neutral-soft); color: var(--text-2); }
+
+/* --- Ana alan & üst çubuk --- */
+.main { min-width: 0; display: flex; flex-direction: column; }
+.topbar {
+  position: sticky; top: 0; z-index: 30;
+  height: 76px; display: flex; align-items: center; gap: 10px; padding: 0 var(--gutter);
+  background: rgba(247, 247, 242, .92); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.search {
+  flex: 0 1 400px; min-width: 180px; height: 46px;
+  display: flex; align-items: center; gap: 10px; padding: 0 8px 0 14px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); color: var(--icon-muted);
+}
+.search:focus-within { border-color: var(--primary); }
+.search input { flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: transparent; font-size: 15px; font-weight: 500; color: var(--text); }
+.search input::placeholder { color: var(--text-2); opacity: 1; }
+.search kbd { font: inherit; font-size: 12px; font-weight: 700; color: var(--text-2); background: var(--surface-alt); border: 1px solid var(--tc-soft-sage); border-radius: 7px; padding: 3px 7px; }
+.topbar__spacer { flex: 1; }
+.topbar__divider { width: 1px; height: 28px; margin: 0 6px; background: var(--line); }
+
+/* --- Mobil üst çubuk, alt sekmeler, hızlı işlem (masaüstünde gizli) --- */
+.mobile-bar, .tabbar, .sheet, .scrim { display: none; }
+
+/* =========================================================
+   4. Bileşenler
+   ========================================================= */
+.btn {
+  height: 46px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 16px;
+  background: var(--surface); border: 1px solid #D5DFD7; border-radius: var(--r-md);
+  color: var(--text); font-size: 15px; font-weight: 700; white-space: nowrap;
+}
+.btn .icon { color: var(--primary); }
+.btn:hover { background: #FBFBF8; border-color: var(--line-strong); color: var(--text); }
+.btn--primary { padding: 0 18px; background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
+.btn--primary .icon { color: currentColor; stroke-width: 2.4; }
+.btn--primary:hover { background: var(--primary-press); border-color: var(--primary-press); color: var(--on-primary); }
+.btn--accent { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 800; }
+.btn--accent .icon { color: currentColor; }
+.btn--accent:hover { background: #BFE93C; border-color: #BFE93C; color: var(--on-accent); }
+.btn--outline { border-color: var(--line-strong); color: var(--primary); }
+.btn--outline:hover { color: var(--primary); }
+.btn--sm { height: 34px; gap: 6px; padding: 0 12px; border-radius: var(--r-sm); font-size: 13px; font-weight: 800; }
+.btn--block { width: 100%; }
+
+.icon-btn { position: relative; width: 46px; height: 46px; flex-shrink: 0; display: grid; place-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); color: var(--text); }
+.icon-btn:hover { border-color: var(--line-strong); }
+.icon-btn .icon { width: 20px; height: 20px; }
+.icon-btn__dot { position: absolute; top: 10px; right: 11px; width: 10px; height: 10px; border-radius: 50%; background: var(--danger); border: 2px solid var(--surface); }
+
+.link { display: inline-flex; align-items: center; gap: 4px; min-height: 34px; font-size: 13.5px; font-weight: 700; white-space: nowrap; }
+.link .icon { width: 15px; height: 15px; stroke-width: 2.2; }
+
+.chip { display: inline-flex; align-items: center; gap: 5px; height: 30px; padding: 0 10px; border-radius: var(--pill); font-size: 12.5px; font-weight: 800; white-space: nowrap; }
+.chip--sm { height: 22px; gap: 4px; padding: 0 8px; font-size: 12px; }
+.chip--ok { background: var(--accent-soft); color: var(--primary); }
+.chip--neutral { background: var(--neutral-soft); color: var(--neutral-ink); }
+.chip--warn { background: var(--warn-soft); color: var(--warn-ink); border: 1px solid var(--warn-line); }
+.chip--outline { background: var(--surface); color: var(--primary); border: 1px solid var(--line-strong); }
+.chip__dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+.delta { display: inline-flex; align-items: center; gap: 2px; height: 24px; padding: 0 8px 0 6px; border-radius: var(--pill); background: var(--accent-soft); color: var(--primary); font-size: 12.5px; font-weight: 800; white-space: nowrap; }
+.count { min-width: 24px; height: 24px; padding: 0 8px; border-radius: var(--pill); background: var(--text); color: #FFFFFF; font-size: 12.5px; font-weight: 800; display: grid; place-items: center; }
+
+.live { display: inline-flex; align-items: center; gap: 7px; height: 26px; padding: 0 10px; border-radius: var(--pill); background: var(--accent-soft); color: var(--primary); font-size: 12.5px; font-weight: 800; white-space: nowrap; }
+.live__dot { width: 7px; height: 7px; border-radius: 50%; background: var(--primary); animation: pulse 2s infinite; }
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(47, 107, 79, .45); }
+  70% { box-shadow: 0 0 0 7px rgba(47, 107, 79, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(47, 107, 79, 0); }
+}
+
+/* --- Kart --- */
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-xl); padding: 20px 22px; min-width: 0; }
+.card__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.card__title-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; }
+.card__title { font-size: 19px; font-weight: 800; letter-spacing: -.01em; }
+.card__meta { margin-top: 3px; font-size: 13.5px; color: var(--text-2); }
+.card__title-row .card__meta { margin-top: 0; }
+
+/* =========================================================
+   5. Sayfa bölümleri
+   ========================================================= */
+.content { width: 100%; max-width: 1360px; display: flex; flex-direction: column; gap: 24px; padding: 28px var(--gutter) 40px; }
+
+/* Karşılama */
+.page-head__eyebrow { font-size: 12.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--text-2); }
+.page-head__title { margin-top: 6px; font-size: 36px; line-height: 1.15; font-weight: 800; letter-spacing: -.025em; }
+.page-head__lede { margin-top: 8px; font-size: 16px; color: var(--text-2); }
+.page-head__lede strong { color: var(--text); font-weight: 700; }
+
+/* Günün özeti (KPI) */
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--r-xl); overflow: hidden; }
+.kpi { container-type: inline-size; min-width: 0; display: flex; flex-direction: column; gap: 10px; padding: 20px 24px 18px; background: var(--surface); }
+.kpi__label { font-size: 14px; font-weight: 600; color: var(--text-2); }
+.kpi__row { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; }
+.kpi__value { font-size: 34px; line-height: 1.1; font-weight: 700; letter-spacing: -.02em; white-space: nowrap; }
+.kpi__aside { margin-left: 8px; font-size: 13px; font-weight: 600; letter-spacing: 0; color: var(--text-2); }
+.kpi__foot { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 6px; font-size: 13px; color: var(--text-2); }
+.sparkline { width: 88px; height: 30px; flex-shrink: 0; overflow: visible; }
+.sparkline polyline { fill: none; stroke: var(--chart-spark); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.sparkline circle { fill: var(--primary); stroke: var(--surface); stroke-width: 2; }
+.occupancy { display: flex; gap: 3px; padding-bottom: 4px; }
+.occupancy i { width: 8px; height: 26px; border-radius: 3px; background: var(--primary); }
+.occupancy .is-free { background: var(--surface-alt); box-shadow: inset 0 0 0 1px #BFD0C5; }
+.occupancy .is-maint { background: repeating-linear-gradient(135deg, #BFCBC3 0 3px, var(--line) 3px 6px); }
+@container (max-width: 225px) { .sparkline { display: none; } }
+@container (max-width: 180px) { .occupancy { display: none; } }
+
+/* Kort durumu */
+.courts__tools { display: flex; align-items: center; gap: 20px; }
+.legend { display: flex; align-items: center; gap: 14px; font-size: 13px; font-weight: 600; color: var(--text-2); }
+.legend li { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.legend strong { color: var(--text); }
+.swatch { width: 12px; height: 12px; border-radius: 4px; background: var(--primary); }
+.swatch--free { background: var(--surface-alt); box-shadow: inset 0 0 0 1px #BFD0C5; }
+.swatch--maint { background: repeating-linear-gradient(135deg, #BFCBC3 0 3px, var(--line-soft) 3px 6px); }
+.courts__grid { margin-top: 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(236px, 1fr)); gap: 14px; }
+
+.court {
+  --court-bg: var(--primary);
+  --court-line: rgba(255, 255, 255, .5);
+  --court-net: var(--accent-soft);
+  min-width: 0; display: flex; gap: 12px; padding: 8px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg);
+}
+.court--free { --court-bg: var(--surface-alt); --court-line: rgba(47, 107, 79, .35); --court-net: rgba(47, 107, 79, .55); border-color: #BFD0C5; }
+.court--maint { --court-bg: repeating-linear-gradient(135deg, #EEF1EC 0 6px, #E2E7E1 6px 12px); --court-line: rgba(94, 106, 96, .35); --court-net: rgba(94, 106, 96, .5); }
+.court--overtime { border-color: var(--warn-border); }
+.court__visual { position: relative; width: 64px; flex-shrink: 0; display: grid; place-items: center; padding: 8px 0; border-radius: 11px; background: var(--court-bg); }
+.court__svg { width: 44px; height: 92px; overflow: visible; }
+.court__lines { fill: none; stroke: var(--court-line); stroke-width: 1.2; }
+.court__net { fill: none; stroke: var(--court-net); stroke-width: 2; stroke-linecap: round; }
+.court__svg .player { fill: var(--accent); stroke: var(--tc-green-deep); stroke-width: 1.5; }
+.court__svg .coach { fill: #FFFFFF; stroke: var(--tc-green-deep); stroke-width: 1.5; }
+.court__badge { position: absolute; left: 50%; top: 50%; width: 30px; height: 30px; margin: -15px 0 0 -15px; display: grid; place-items: center; border-radius: 50%; background: var(--surface); border: 1px solid #D5DFD7; color: var(--neutral-ink); }
+.court__badge .icon { width: 15px; height: 15px; stroke-width: 2.2; }
+.court__body { flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 2px 4px 2px 0; }
+.court__head { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; }
+.court__name { font-size: 15.5px; font-weight: 800; letter-spacing: -.01em; }
+.court__surface { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text-2); white-space: nowrap; }
+.court__left { display: none; font-size: 12px; font-weight: 800; white-space: nowrap; }
+.court__left--warn { color: var(--warn-ink); }
+.court__type { margin-top: 6px; display: flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 700; color: var(--primary); }
+.court__type .icon { width: 14px; height: 14px; stroke-width: 2.2; }
+.court__who { margin-top: 3px; font-size: 14px; font-weight: 700; }
+.court__sub { margin-top: 1px; font-size: 12.5px; color: var(--text-2); }
+.court__foot { margin-top: auto; padding-top: 9px; }
+.court__foot .btn { height: 32px; }
+.progress { height: 6px; border-radius: var(--pill); background: var(--line); overflow: hidden; }
+.progress > span { display: block; width: var(--p, 0%); height: 100%; border-radius: inherit; background: var(--primary); }
+.progress--muted > span { background: var(--nav-icon); }
+.progress--warn > span { background: var(--warn); }
+.court__time { margin-top: 5px; display: flex; justify-content: space-between; gap: 6px; font-size: 12px; font-weight: 600; color: var(--text-2); font-variant-numeric: tabular-nums; }
+.court__time strong { font-weight: 800; color: var(--text); white-space: nowrap; }
+.court__time .is-warn { display: inline-flex; align-items: center; gap: 4px; color: var(--warn-ink); }
+
+/* İki sütunlu satırlar */
+.split { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 20px; align-items: stretch; }
+
+/* Sıradaki seanslar */
+.sessions { display: flex; flex-direction: column; padding-bottom: 16px; }
+.session-list { margin-top: 10px; }
+.session { display: grid; grid-template-columns: 48px minmax(0, 150px) 72px minmax(0, 1fr) 100px; align-items: center; gap: 10px; padding: 11px 0; }
+.session + .session { border-top: 1px solid var(--line-soft); }
+.session__time { display: flex; flex-direction: column; font-variant-numeric: tabular-nums; }
+.session__time strong { font-size: 15px; font-weight: 800; }
+.session__time span { font-size: 12px; font-weight: 600; color: var(--text-2); }
+.session__who { min-width: 0; display: flex; align-items: center; gap: 10px; }
+.session__name { min-width: 0; display: flex; flex-direction: column; }
+.session__name strong { font-size: 14.5px; font-weight: 700; }
+.session__member { font-size: 12.5px; font-weight: 600; color: var(--text-2); }
+.session__meta { display: none; font-size: 12.5px; color: var(--text-2); }
+.stack { min-width: 0; display: flex; flex-direction: column; }
+.stack strong { font-size: 14px; font-weight: 700; }
+.stack > span { font-size: 12.5px; color: var(--text-2); }
+.session__type strong { display: flex; align-items: center; gap: 5px; font-size: 13.5px; color: var(--primary); }
+.session__type .icon { width: 14px; height: 14px; stroke-width: 2.2; }
+.session__action { display: flex; justify-content: flex-end; }
+.sessions__foot { margin-top: auto; padding-top: 12px; border-top: 1px solid var(--line-soft); display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 13px; color: var(--text-2); }
+.sessions__foot strong { color: var(--text); font-weight: 700; }
+
+/* Dikkat gerektirenler + son hareketler */
+.alert-list { margin-top: 14px; display: flex; flex-direction: column; gap: 6px; }
+.alert { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: var(--r-md); background: var(--bg); color: var(--text); }
+.alert:hover { background: var(--surface-alt); color: var(--text); }
+.alert__icon { width: 38px; height: 38px; flex-shrink: 0; display: grid; place-items: center; border-radius: 11px; }
+.alert__icon--warn { background: var(--warn-soft); color: var(--warn-ink); }
+.alert__icon--ok { background: var(--accent-soft); color: var(--primary); }
+.alert__icon--neutral { background: var(--line); color: var(--neutral-ink); }
+.alert__icon--sage { background: var(--tc-soft-sage); color: var(--tc-green-deep); }
+.alert__text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.alert__text strong { font-size: 14.5px; font-weight: 700; }
+.alert__text span { font-size: 12.5px; color: var(--text-2); }
+.alert__action { font-size: 13px; font-weight: 800; color: var(--primary); white-space: nowrap; }
+.alert__chev { width: 16px; height: 16px; color: var(--icon-muted); stroke-width: 2.2; }
+.activity { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line-soft); }
+.activity__head { display: flex; align-items: center; justify-content: space-between; }
+.activity__head h3 { font-size: 14px; font-weight: 800; }
+.activity__head a { font-size: 13px; font-weight: 700; }
+.activity__list { margin-top: 6px; }
+.activity__list li { display: flex; align-items: center; gap: 10px; padding: 7px 0; font-size: 13.5px; }
+.activity__dot { width: 8px; height: 8px; flex-shrink: 0; border-radius: 50%; background: var(--primary); }
+.activity__dot--danger { background: var(--danger); }
+.activity__text { flex: 1; min-width: 0; }
+.activity__text strong { font-weight: 700; }
+.activity__list time { font-size: 12.5px; font-weight: 600; color: var(--text-2); white-space: nowrap; }
+
+/* Gelir grafiği */
+.segmented { flex-shrink: 0; display: flex; gap: 2px; padding: 3px; background: var(--surface-alt); border-radius: 12px; }
+.segmented button { height: 32px; padding: 0 14px; border: 0; border-radius: 9px; background: transparent; font-size: 13.5px; font-weight: 600; color: var(--text-2); }
+.segmented button[aria-pressed="true"] { background: var(--surface); box-shadow: 0 1px 2px rgba(18, 42, 32, .12); font-weight: 700; color: var(--text); }
+.revenue__summary { margin-top: 14px; display: flex; align-items: center; flex-wrap: wrap; gap: 8px 10px; }
+.revenue__total { font-size: 30px; line-height: 1.1; font-weight: 700; letter-spacing: -.02em; }
+.revenue__compare { font-size: 13px; color: var(--text-2); }
+.chart { --plot-h: 200px; margin-top: 24px; display: grid; grid-template-columns: 52px minmax(0, 1fr); column-gap: 12px; }
+.chart__y { position: relative; height: var(--plot-h); font-size: 12px; font-weight: 600; color: var(--text-2); font-variant-numeric: tabular-nums; }
+.chart__y span { position: absolute; right: 0; transform: translateY(-50%); white-space: nowrap; }
+.chart__y span:nth-child(1) { top: 0; }
+.chart__y span:nth-child(2) { top: 50%; }
+.chart__y span:nth-child(3) { top: 100%; }
+.chart__plot {
+  position: relative; height: var(--plot-h); border-bottom: 1px solid var(--line-strong);
+  background:
+    linear-gradient(var(--line-soft), var(--line-soft)) 0 0 / 100% 1px no-repeat,
+    linear-gradient(var(--line-soft), var(--line-soft)) 0 50% / 100% 1px no-repeat;
+}
+.chart__bars { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.bar { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 6px; outline-offset: 4px; }
+.bar > * { flex-shrink: 0; }
+.bar__fill { width: 24px; height: var(--h); border-radius: 4px 4px 0 0; background: var(--chart-bar); transition: height .35s ease; }
+.bar__value { font-size: 12px; font-weight: 700; color: var(--text-2); white-space: nowrap; font-variant-numeric: tabular-nums; visibility: hidden; }
+.bar--labelled .bar__value, .bar:hover .bar__value, .bar:focus .bar__value { visibility: visible; }
+.bar--today .bar__fill { background: var(--primary); }
+.bar--today .bar__value { font-size: 12.5px; font-weight: 800; color: var(--text); }
+.bar:hover .bar__fill { filter: brightness(1.08); }
+.chart__days { grid-column: 2; margin-top: 10px; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); text-align: center; font-size: 12.5px; font-weight: 600; color: var(--text-2); }
+.chart__days .is-today { font-weight: 800; color: var(--text); }
+
+/* Antrenörler */
+.coach-list { margin-top: 8px; }
+.coach { display: grid; grid-template-columns: 42px minmax(0, 1fr) 64px 74px; grid-template-areas: "avatar info load status"; align-items: center; gap: 12px; padding: 10px 0; }
+.coach + .coach { border-top: 1px solid var(--line-soft); }
+.coach .avatar { grid-area: avatar; }
+.coach__info { grid-area: info; min-width: 0; display: flex; flex-direction: column; }
+.coach__name { font-size: 14.5px; font-weight: 700; }
+.coach__role { font-size: 12.5px; font-weight: 600; color: var(--text-2); }
+.coach__where { font-size: 12.5px; color: var(--text-2); }
+.coach__load { grid-area: load; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; font-size: 12.5px; font-weight: 700; }
+.coach__status { grid-area: status; justify-self: end; }
+.coach--off .coach__name, .coach--off .coach__load { color: var(--text-2); }
+.segments { width: 58px; display: flex; gap: 2px; }
+.segments i { flex: 1; height: 4px; border-radius: 2px; background: #D5DFD7; }
+.segments i.on { background: var(--primary); }
+
+/* Hızlı işlem sayfası (mobil) */
+.sheet__grip { align-self: center; width: 40px; height: 5px; border-radius: var(--pill); background: #D5DFD7; }
+.sheet__head { margin-top: 12px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.sheet__title { font-size: 20px; font-weight: 800; letter-spacing: -.01em; }
+.sheet__close { width: 44px; height: 44px; flex-shrink: 0; display: grid; place-items: center; border: 0; border-radius: 50%; background: var(--surface-alt); }
+.suggest { margin-top: 14px; display: flex; align-items: center; gap: 12px; padding: 12px 12px 12px 14px; background: var(--accent-soft); border: 1px solid #DCEFA0; border-radius: var(--r-lg); }
+.suggest__text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; font-size: 12.5px; color: var(--neutral-ink); }
+.suggest__eyebrow { font-size: 11.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--primary); }
+.suggest__text strong { font-size: 15.5px; font-weight: 800; color: var(--text); }
+.suggest .btn { height: 44px; border-radius: 12px; font-size: 14px; }
+.actions { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+.action { display: flex; align-items: center; gap: 14px; padding: 11px 14px 11px 11px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); color: var(--text); }
+.action:hover { background: var(--bg); color: var(--text); }
+.action__icon { width: 46px; height: 46px; flex-shrink: 0; display: grid; place-items: center; border-radius: var(--r-md); }
+.action__icon .icon { width: 22px; height: 22px; }
+.action__icon--primary { background: var(--primary); color: #FFFFFF; }
+.action__icon--lime { background: var(--accent-soft); color: var(--primary); }
+.action__icon--sage { background: var(--tc-soft-sage); color: var(--tc-green-deep); }
+.action__icon--warn { background: var(--warn-soft); color: var(--warn-ink); }
+.action__text { flex: 1; min-width: 0; display: flex; flex-direction: column; font-size: 12.5px; color: var(--text-2); }
+.action__text strong { font-size: 15.5px; font-weight: 800; color: var(--text); }
+.action > .icon { color: var(--icon-muted); }
+
+/* =========================================================
+   6. Kırılımlar
+   ========================================================= */
+@media (max-width: 1199px) {
+  /* İkincil üst çubuk butonları ikona dönüşür */
+  .topbar .btn--quiet { width: 46px; padding: 0; }
+  .topbar .btn--quiet .btn__label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+}
+
+@media (max-width: 1179px) {
+  .split { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* --- Tablet & dizüstü: ikonlu dar yan menü --- */
+@media (min-width: 768px) and (max-width: 1365px) {
+  :root { --sidebar-w: 80px; --gutter: 24px; }
+  .sidebar { align-items: center; padding: 20px 12px; }
+  .brand { padding: 0; }
+  .brand__text, .branch__text, .branch__chev, .nav__count, .nav__badge, .me__text, .me__logout { display: none; }
+  .branch { width: 48px; min-height: 48px; justify-content: center; padding: 0; }
+  .nav { width: 100%; align-items: center; }
+  .nav__label { width: 32px; height: 1px; margin: 12px 0; padding: 0; overflow: hidden; font-size: 0; background: var(--nav-divider); }
+  .nav__label:first-child { display: none; }
+  .nav__item { width: 48px; height: 44px; justify-content: center; padding: 0; }
+  .nav__text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .sidebar__foot { width: 100%; align-items: center; }
+  .me { margin-top: 8px; padding: 4px; background: transparent; border: 0; }
+}
+
+@media (max-width: 1023px) {
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* --- Mobil --- */
+@media (max-width: 767px) {
+  :root { --gutter: 16px; }
+  .app { display: block; }
+  .hide-mobile { display: none; }
+
+  /* Yan menü çekmeceye dönüşür */
+  .sidebar {
+    position: fixed; z-index: 70; inset: 0 auto 0 0; width: 286px; height: 100%;
+    transform: translateX(-100%); visibility: hidden;
+    transition: transform .25s ease, visibility 0s linear .25s;
+  }
+  body.nav-open .sidebar { transform: none; visibility: visible; transition: transform .25s ease; }
+  .sidebar__close { position: absolute; top: 16px; right: 12px; width: 44px; height: 44px; display: grid; place-items: center; border: 0; border-radius: 12px; background: var(--nav-surface); color: var(--nav-text); }
+  .topbar { display: none; }
+
+  .mobile-bar {
+    position: sticky; top: 0; z-index: 30;
+    display: flex; align-items: center; gap: 10px; min-height: 64px; padding: 10px 16px 6px;
+    background: rgba(247, 247, 242, .94); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  }
+  .mobile-bar .brand__mark { width: 36px; height: 36px; }
+  .mobile-bar__club { flex: 1; min-width: 0; min-height: 44px; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 1px; padding: 0; border: 0; background: transparent; text-align: left; }
+  .mobile-bar__name { font-size: 17px; font-weight: 800; letter-spacing: -.01em; }
+  .mobile-bar__branch { display: flex; align-items: center; gap: 2px; font-size: 12.5px; font-weight: 600; color: var(--text-2); }
+  .mobile-bar .icon-btn { width: 44px; height: 44px; }
+
+  .content { gap: 22px; padding: 6px 16px calc(112px + env(safe-area-inset-bottom)); }
+  .page-head__eyebrow { font-size: 11.5px; }
+  .page-head__title { margin-top: 4px; font-size: 28px; }
+  .page-head__lede { margin-top: 5px; font-size: 14.5px; }
+
+  /* KPI: ayrı kartlar */
+  .kpis { gap: 10px; background: transparent; border: 0; border-radius: 0; overflow: visible; }
+  .kpi { gap: 3px; padding: 13px 14px 12px; border: 1px solid var(--line); border-radius: var(--r-lg); }
+  .kpi__label { font-size: 12.5px; }
+  .kpi__value { font-size: 25px; line-height: 1.15; }
+  .kpi__aside { margin-left: 6px; font-size: 12px; }
+  .kpi__foot { margin-top: 4px; font-size: 12px; gap: 4px 5px; }
+  .kpi .delta { height: 22px; font-size: 12px; padding: 0 7px 0 5px; }
+  .sparkline, .occupancy { display: none; }
+
+  .card { padding: 16px; border-radius: 18px; }
+  .card__title { font-size: 18px; }
+  .card__meta { font-size: 12.5px; }
+
+  /* Kortlar: yatay kaydırılan kartlar */
+  .courts { padding: 0; background: transparent; border: 0; border-radius: 0; }
+  .courts .card__head { flex-direction: column; align-items: stretch; gap: 4px; }
+  .courts__meta, .courts__open { display: none; }
+  .legend { gap: 12px; font-size: 12.5px; }
+  .courts__grid { display: flex; gap: 10px; margin: 12px -16px 0 0; padding: 0 16px 4px 0; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+  .courts__grid::-webkit-scrollbar { display: none; }
+  .court { flex: 0 0 150px; flex-direction: column; gap: 9px; padding: 7px; scroll-snap-align: start; }
+  .court__visual { width: auto; height: 70px; padding: 0; }
+  .court__svg { transform: rotate(90deg); }
+  .court__badge { width: 28px; height: 28px; margin: -14px 0 0 -14px; }
+  .court__body { padding: 0 4px 3px; }
+  .court__name { font-size: 14.5px; }
+  .court__surface, .court__sub, .court__time, .court__type .icon { display: none; }
+  .court__left { display: block; }
+  .court__type { margin-top: 3px; font-size: 12.5px; }
+  .court__who { margin-top: 1px; font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .court__foot { padding-top: 8px; }
+  .court__foot .btn { height: 30px; font-size: 12.5px; }
+  .progress { height: 5px; }
+
+  /* Seanslar: sade satırlar */
+  .session { grid-template-columns: 42px minmax(0, 1fr) auto; padding: 10px 0; }
+  .session .avatar, .session__court, .session__type, .session__member { display: none; }
+  .session__time strong { font-size: 14.5px; }
+  .session__meta { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .session__action { justify-content: flex-end; }
+  .session__action .btn { height: 44px; border-radius: 12px; }
+  .sessions__foot { display: none; }
+
+  /* Dikkat: ayrı kartlar */
+  .attention { padding: 0; background: transparent; border: 0; border-radius: 0; }
+  .alert-list { margin-top: 10px; gap: 8px; }
+  .alert { padding: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); }
+  .alert__icon { width: 40px; height: 40px; border-radius: 12px; }
+  .alert__action { display: none; }
+  .activity { margin-top: 16px; }
+
+  /* Grafik */
+  .revenue__total { font-size: 25px; }
+  .segmented button { height: 30px; padding: 0 11px; font-size: 12.5px; }
+  .chart { --plot-h: 150px; margin-top: 22px; grid-template-columns: 44px minmax(0, 1fr); column-gap: 8px; }
+  .chart__y { font-size: 11.5px; }
+  .bar__fill { width: 20px; }
+  .bar__value, .bar--today .bar__value { font-size: 11.5px; }
+  .chart__days { font-size: 11.5px; }
+
+  /* Antrenörler: yatay kartlar */
+  .coaches { padding: 0; background: transparent; border: 0; border-radius: 0; }
+  .coach-list { display: flex; gap: 10px; margin: 10px -16px 0 0; padding-right: 16px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+  .coach-list::-webkit-scrollbar { display: none; }
+  .coach, .coach + .coach { flex: 0 0 144px; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "avatar status" "info info" "load load"; gap: 10px; padding: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); scroll-snap-align: start; }
+  .coach .avatar { width: 38px; height: 38px; font-size: 13px; }
+  .coach__name { font-size: 14px; }
+  .coach__role { display: none; }
+  .coach__where { font-size: 12px; }
+  .coach__load { flex-direction: row; align-items: center; justify-content: space-between; font-size: 12px; }
+  .coach__status .chip { height: 24px; padding: 0 8px; font-size: 11.5px; }
+
+  /* Alt sekme çubuğu */
+  .tabbar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+    display: flex; justify-content: space-around; align-items: flex-start;
+    height: calc(84px + env(safe-area-inset-bottom)); padding: 8px 6px env(safe-area-inset-bottom);
+    background: var(--surface); border-top: 1px solid var(--line);
+  }
+  .tab { width: 66px; height: 54px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 0; border: 0; background: transparent; color: var(--text-2); font-size: 11.5px; font-weight: 600; }
+  .tab:hover { color: var(--text); }
+  .tab__icon { width: 54px; height: 30px; display: grid; place-items: center; border-radius: var(--pill); }
+  .tab .icon { width: 20px; height: 20px; stroke-width: 1.9; }
+  .tab[aria-current="page"] { color: var(--on-accent); font-weight: 800; }
+  .tab[aria-current="page"] .tab__icon { background: var(--accent); }
+  .fab { width: 62px; height: 62px; margin-top: -26px; flex-shrink: 0; display: grid; place-items: center; border: 5px solid var(--surface); border-radius: 50%; background: var(--primary); color: #FFFFFF; box-shadow: var(--shadow-float); }
+  .fab .icon { width: 24px; height: 24px; stroke-width: 2.6; transition: transform .2s ease; }
+  body.sheet-open .fab .icon { transform: rotate(45deg); }
+
+  /* Karartma + hızlı işlem */
+  .scrim { position: fixed; inset: 0; z-index: 60; display: block; background: rgba(18, 42, 32, .55); opacity: 0; pointer-events: none; transition: opacity .2s ease; }
+  body.nav-open .scrim, body.sheet-open .scrim { opacity: 1; pointer-events: auto; }
+  .sheet {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 65;
+    display: flex; flex-direction: column; max-height: 92vh; overflow-y: auto;
+    padding: 10px 16px calc(30px + env(safe-area-inset-bottom));
+    background: var(--surface); border-radius: 26px 26px 0 0;
+    transform: translateY(105%); visibility: hidden;
+    transition: transform .25s ease, visibility 0s linear .25s;
+  }
+  body.sheet-open .sheet { transform: none; visibility: visible; transition: transform .25s ease; }
+  body.sheet-open, body.nav-open { overflow: hidden; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live__dot { animation: none; }
+  .sidebar, .sheet, .scrim, .bar__fill, .fab .icon { transition: none !important; }
+}
+</style>
+</head>
+<body>
+
+<!-- =========================================================
+     İkon sprite'ı (Lucide, ISC) + marka işareti + kort çizgileri
+     ========================================================= -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="brand-mark" viewBox="0 0 36 36"><circle cx="18" cy="18" r="18" fill="#C9F34A"/><path d="M18 10.5V25.5M11.5 14.25L24.5 21.75M24.5 14.25L11.5 21.75" fill="none" stroke="#122A20" stroke-width="2.6" stroke-linecap="round"/></symbol>
+    <symbol id="court-lines" viewBox="0 0 44 92"><rect x="1" y="1" width="42" height="90" rx="1"/><path d="M6.25 1V91M37.75 1V91M6.25 21.8H37.75M6.25 70.2H37.75M22 21.8V70.2"/></symbol>
+    <symbol id="i-court" viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M12 4v16"/><path d="M7 8v8M17 8v8M7 12h10"/></symbol>
+    <symbol id="i-house" viewBox="0 0 24 24"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24"><path d="M8 2v3"/><path d="M16 2v3"/><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M8 13h.01"/><path d="M12 13h.01"/><path d="M16 13h.01"/><path d="M8 17h.01"/><path d="M12 17h.01"/><path d="M16 17h.01"/></symbol>
+    <symbol id="i-clipboard" viewBox="0 0 24 24"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></symbol>
+    <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><path d="M16 3.128a4 4 0 0 1 0 7.744"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/></symbol>
+    <symbol id="i-users-round" viewBox="0 0 24 24"><path d="M18 21a8 8 0 0 0-16 0"/><circle cx="10" cy="8" r="5"/><path d="M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3"/></symbol>
+    <symbol id="i-user-round" viewBox="0 0 24 24"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></symbol>
+    <symbol id="i-user-plus" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></symbol>
+    <symbol id="i-whistle" viewBox="0 0 24 24"><path d="M10 6v4"/><path d="M21 6a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-5.675A7 7 0 1 1 9 6z"/></symbol>
+    <symbol id="i-wallet" viewBox="0 0 24 24"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-life-buoy" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24"/><path d="m14.83 9.17 4.24-4.24"/><path d="m14.83 14.83 4.24 4.24"/><path d="m9.17 14.83-4.24 4.24"/><circle cx="12" cy="12" r="4"/></symbol>
+    <symbol id="i-log-out" viewBox="0 0 24 24"><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/></symbol>
+    <symbol id="i-map-pin" viewBox="0 0 24 24"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></symbol>
+    <symbol id="i-chevrons-up-down" viewBox="0 0 24 24"><path d="m7 15 5 5 5-5"/><path d="m7 9 5-5 5 5"/></symbol>
+    <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+    <symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
+    <symbol id="i-arrow-up-right" viewBox="0 0 24 24"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+    <symbol id="i-wrench" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.106-3.105c.32-.322.863-.22.983.218a6 6 0 0 1-8.259 7.057l-7.91 7.91a1 1 0 0 1-2.999-3l7.91-7.91a6 6 0 0 1 7.057-8.259c.438.12.54.662.219.984z"/></symbol>
+    <symbol id="i-cloud-rain" viewBox="0 0 24 24"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M16 14v6"/><path d="M8 14v6"/><path d="M12 16v6"/></symbol>
+    <symbol id="i-id-card" viewBox="0 0 24 24"><path d="M13 19a4 4 0 00-8 0"/><path d="M16 10h2"/><path d="M16 14h2"/><circle cx="9" cy="12" r="3"/><rect x="2" y="5" width="20" height="14" rx="2"/></symbol>
+    <symbol id="i-timer" viewBox="0 0 24 24"><line x1="10" x2="14" y1="2" y2="2"/><line x1="12" x2="15" y1="14" y2="11"/><circle cx="12" cy="14" r="8"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 5h16"/><path d="M4 12h16"/><path d="M4 19h16"/></symbol>
+  </defs>
+</svg>
+
+<div class="app">
+
+  <!-- =====================================================
+       Yan menü (mobilde çekmece)
+       ===================================================== -->
+  <aside class="sidebar" id="sidebar" aria-label="Kulüp menüsü">
+    <button class="sidebar__close js-close" type="button" aria-label="Menüyü kapat"><svg class="icon icon--lg" aria-hidden="true"><use href="#i-x"></use></svg></button>
+
+    <a class="brand" href="#">
+      <svg class="brand__mark" aria-hidden="true"><use href="#brand-mark"></use></svg>
+      <span class="brand__text">
+        <span class="brand__name">Tennis Clinic</span>
+        <span class="brand__sub">Kulüp yönetimi</span>
+      </span>
+    </a>
+
+    <button class="branch" type="button" aria-label="Şube değiştir: Merkez Kulüp">
+      <span class="branch__icon"><svg class="icon" aria-hidden="true"><use href="#i-map-pin"></use></svg></span>
+      <span class="branch__text">
+        <span class="branch__label">Şube</span>
+        <span class="branch__name">Merkez Kulüp</span>
+      </span>
+      <svg class="icon branch__chev" aria-hidden="true"><use href="#i-chevrons-up-down"></use></svg>
+    </button>
+
+    <nav class="nav" aria-label="Ana menü">
+      <p class="nav__label">Günlük</p>
+      <a class="nav__item" href="#" aria-current="page" title="Genel Bakış"><svg class="icon" aria-hidden="true"><use href="#i-house"></use></svg><span class="nav__text">Genel Bakış</span></a>
+      <a class="nav__item" href="#" title="Takvim"><svg class="icon" aria-hidden="true"><use href="#i-calendar"></use></svg><span class="nav__text">Takvim</span></a>
+      <a class="nav__item" href="#" title="Rezervasyonlar"><svg class="icon" aria-hidden="true"><use href="#i-clipboard"></use></svg><span class="nav__text">Rezervasyonlar</span><span class="nav__count">32</span></a>
+
+      <p class="nav__label">Kulüp</p>
+      <a class="nav__item" href="#" title="Üyeler"><svg class="icon" aria-hidden="true"><use href="#i-users"></use></svg><span class="nav__text">Üyeler</span></a>
+      <a class="nav__item" href="#" title="Antrenörler"><svg class="icon" aria-hidden="true"><use href="#i-whistle"></use></svg><span class="nav__text">Antrenörler</span></a>
+      <a class="nav__item" href="#" title="Kortlar"><svg class="icon" aria-hidden="true"><use href="#i-court"></use></svg><span class="nav__text">Kortlar</span></a>
+
+      <p class="nav__label">İşletme</p>
+      <a class="nav__item" href="#" title="Ödemeler"><svg class="icon" aria-hidden="true"><use href="#i-wallet"></use></svg><span class="nav__text">Ödemeler</span><span class="nav__badge" aria-label="2 bekleyen">2</span></a>
+      <a class="nav__item" href="#" title="Raporlar"><svg class="icon" aria-hidden="true"><use href="#i-chart"></use></svg><span class="nav__text">Raporlar</span></a>
+    </nav>
+
+    <div class="sidebar__foot">
+      <a class="nav__item" href="#" title="Ayarlar"><svg class="icon" aria-hidden="true"><use href="#i-settings"></use></svg><span class="nav__text">Ayarlar</span></a>
+      <a class="nav__item" href="#" title="Yardım ve destek"><svg class="icon" aria-hidden="true"><use href="#i-life-buoy"></use></svg><span class="nav__text">Yardım ve destek</span></a>
+      <div class="me">
+        <span class="avatar avatar--me" aria-hidden="true">SK</span>
+        <span class="me__text">
+          <span class="me__name">Selin Karaca</span>
+          <span class="me__role">Kulüp müdürü</span>
+        </span>
+        <button class="me__logout" type="button" aria-label="Çıkış yap"><svg class="icon" aria-hidden="true"><use href="#i-log-out"></use></svg></button>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main">
+
+    <!-- Masaüstü üst çubuk -->
+    <header class="topbar">
+      <label class="search">
+        <svg class="icon" aria-hidden="true"><use href="#i-search"></use></svg>
+        <input type="search" name="q" placeholder="Üye, kort veya rezervasyon ara" aria-label="Ara">
+        <kbd>⌘K</kbd>
+      </label>
+      <span class="topbar__spacer"></span>
+      <button class="btn btn--quiet" type="button"><svg class="icon" aria-hidden="true"><use href="#i-user-plus"></use></svg><span class="btn__label">Üye Ekle</span></button>
+      <button class="btn btn--quiet" type="button"><svg class="icon" aria-hidden="true"><use href="#i-whistle"></use></svg><span class="btn__label">Ders Planla</span></button>
+      <button class="btn btn--primary" type="button"><svg class="icon" aria-hidden="true"><use href="#i-plus"></use></svg>Yeni Rezervasyon</button>
+      <span class="topbar__divider" aria-hidden="true"></span>
+      <button class="icon-btn" type="button" aria-label="Bildirimler, 3 yeni"><svg class="icon" aria-hidden="true"><use href="#i-bell"></use></svg><span class="icon-btn__dot"></span></button>
+    </header>
+
+    <!-- Mobil üst çubuk -->
+    <header class="mobile-bar">
+      <svg class="brand__mark" aria-hidden="true"><use href="#brand-mark"></use></svg>
+      <button class="mobile-bar__club" type="button" aria-label="Şube değiştir: Merkez Kulüp">
+        <span class="mobile-bar__name">Tennis Clinic</span>
+        <span class="mobile-bar__branch">Merkez Kulüp <svg class="icon icon--sm" aria-hidden="true"><use href="#i-chevron-down"></use></svg></span>
+      </button>
+      <button class="icon-btn" type="button" aria-label="Ara"><svg class="icon" aria-hidden="true"><use href="#i-search"></use></svg></button>
+      <button class="icon-btn" type="button" aria-label="Bildirimler, 3 yeni"><svg class="icon" aria-hidden="true"><use href="#i-bell"></use></svg><span class="icon-btn__dot"></span></button>
+    </header>
+
+    <main class="content">
+
+      <!-- Karşılama -->
+      <section class="page-head">
+        <p class="page-head__eyebrow">28 Eylül 2026 · Pazartesi</p>
+        <h1 class="page-head__title">İyi günler, Selin</h1>
+        <p class="page-head__lede">Bugün <strong>32 rezervasyon</strong> ve <strong>14 ders</strong> var.<span class="hide-mobile"> Şu an 8 kortun <strong>6'sı dolu</strong>.</span></p>
+      </section>
+
+      <!-- Günün özeti -->
+      <section class="kpis" aria-label="Günün özeti">
+        <article class="kpi">
+          <h2 class="kpi__label">Bugünkü gelir</h2>
+          <div class="kpi__row">
+            <p class="kpi__value">₺48.750</p>
+            <svg class="sparkline" viewBox="0 0 96 30" aria-hidden="true"><polyline points="2,24.9 20.4,19.9 38.8,17.5 57.2,18.7 75.6,13.8 94,5.9"/><circle cx="94" cy="5.9" r="4"/></svg>
+          </div>
+          <p class="kpi__foot"><span class="delta"><svg class="icon icon--xs" aria-hidden="true"><use href="#i-arrow-up-right"></use></svg>%12</span><span>geçen pazartesi<span class="hide-mobile">ye göre</span></span></p>
+        </article>
+        <article class="kpi">
+          <h2 class="kpi__label">Rezervasyon</h2>
+          <div class="kpi__row">
+            <p class="kpi__value">32</p>
+            <svg class="sparkline" viewBox="0 0 96 30" aria-hidden="true"><polyline points="2,25 20.4,19 38.8,22 57.2,13 75.6,16 94,7"/><circle cx="94" cy="7" r="4"/></svg>
+          </div>
+          <p class="kpi__foot"><span class="delta"><svg class="icon icon--xs" aria-hidden="true"><use href="#i-arrow-up-right"></use></svg>%9</span><span>geçen pazartesi<span class="hide-mobile">ye göre</span></span></p>
+        </article>
+        <article class="kpi">
+          <h2 class="kpi__label">Ders</h2>
+          <div class="kpi__row">
+            <p class="kpi__value">14<span class="kpi__aside">9 özel · 5 grup</span></p>
+            <svg class="sparkline" viewBox="0 0 96 30" aria-hidden="true"><polyline points="2,23.2 20.4,18.4 38.8,18.4 57.2,13.6 75.6,18.4 94,8.8"/><circle cx="94" cy="8.8" r="4"/></svg>
+          </div>
+          <p class="kpi__foot"><span class="delta"><svg class="icon icon--xs" aria-hidden="true"><use href="#i-arrow-up-right"></use></svg>%8</span><span>geçen pazartesi<span class="hide-mobile">ye göre</span></span></p>
+        </article>
+        <article class="kpi">
+          <h2 class="kpi__label">Kort doluluğu</h2>
+          <div class="kpi__row">
+            <p class="kpi__value">%76</p>
+            <span class="occupancy" aria-hidden="true"><i></i><i></i><i class="is-maint"></i><i class="is-free"></i><i></i><i></i><i></i><i></i></span>
+          </div>
+          <p class="kpi__foot"><span class="delta"><svg class="icon icon--xs" aria-hidden="true"><use href="#i-arrow-up-right"></use></svg>5 puan</span><span><span class="hide-mobile">şu an </span>6/8 kort dolu</span></p>
+        </article>
+      </section>
+
+      <!-- Kort durumu -->
+      <section class="card courts" aria-labelledby="courts-title">
+        <header class="card__head">
+          <div class="card__title-row">
+            <h2 class="card__title" id="courts-title">Kort durumu</h2>
+            <span class="live"><span class="live__dot"></span>Canlı · 17:30</span>
+            <span class="card__meta courts__meta">Merkez Kulüp · 8 kort</span>
+          </div>
+          <div class="courts__tools">
+            <ul class="legend">
+              <li><span class="swatch"></span>Dolu <strong>6</strong></li>
+              <li><span class="swatch swatch--free"></span>Müsait <strong>1</strong></li>
+              <li><span class="swatch swatch--maint"></span>Bakımda <strong>1</strong></li>
+            </ul>
+            <a class="btn btn--sm btn--outline courts__open" href="#">Takvimi aç<svg class="icon icon--sm" aria-hidden="true"><use href="#i-arrow-right"></use></svg></a>
+          </div>
+        </header>
+
+        <div class="courts__grid">
+
+          <article class="court">
+            <div class="court__visual">
+              <svg class="court__svg" viewBox="0 0 44 92" aria-hidden="true"><use class="court__lines" href="#court-lines"></use><path class="court__net" d="M-2 46H46"/><circle class="player" cx="22" cy="10" r="4.2"/><circle class="coach" cx="22" cy="82" r="4.2"/></svg>
+            </div>
+            <div class="court__body">
+              <div class="court__head"><h3 class="court__name">Kort 1</h3><span class="court__surface">Toprak</span><span class="court__left">30 dk</span></div>
+              <p class="court__type"><svg class="icon" aria-hidden="true"><use href="#i-whistle"></use></svg>Özel ders</p>
+              <p class="court__who ellipsis">Deniz Aydın</p>
+              <p class="court__sub ellipsis">Ant. Tolga Aksu</p>
+              <div class="court__foot">
+                <div class="progress"><span style="--p: 50%"></span></div>
+                <div class="court__time"><span>17:00–18:00</span><strong>30 dk kaldı</strong></div>
+              </div>
+            </div>
+          </article>
+
+          <article class="court">
+            <div class="court__visual">
+              <svg class="court__svg" viewBox="0 0 44 92" aria-hidden="true"><use class="court__lines" href="#court-lines"></use><path class="court__net" d="M-2 46H46"/><circle class="player" cx="22" cy="10" r="4.2"/><circle class="player" cx="22" cy="82" r="4.2"/></svg>
+            </div>
+            <div class="court__body">
+              <div class="court__head"><h3 class="court__name">Kort 2</h3><span class="court__surface">Toprak</span><span class="court__left">15 dk</span></div>
+              <p class="court__type"><svg class="icon" aria-hidden="true"><use href="#i-user-round"></use></svg>Rezervasyon</p>
+              <p class="court__who ellipsis">Mert Kaya, Can Demir</p>
+              <p class="court__sub ellipsis">Tekler · 2 oyuncu</p>
+              <div class="court__foot">
+                <div class="progress"><span style="--p: 75%"></span></div>
+                <div class="court__time"><span>16:45–17:45</span><strong>15 dk kaldı</strong></div>
+              </div>
+            </div>
+          </article>
+
+          <article class="court court--maint">
+            <div class="court__visual">
+              <svg class="court__svg" viewBox="0 0 44 92" aria-hidden="true"><use class="court__lines" href="#court-lines"></use><path class="court__net" d="M-2 46H46"/></svg>
+              <span class="court__badge"><svg class="icon" aria-hidden="true"><use href="#i-wrench"></use></svg></span>
+            </div>
+            <div class="court__body">
+              <div class="court__head"><h3 class="court__name">Kort 3</h3><span class="court__surface">Toprak</span><span class="court__left">19:00</span></div>
+              <p class="court__type"><span class="chip chip--sm chip--neutral">Bakımda</span></p>
+              <p class="court__who ellipsis">Zemin bakımı</p>
+              <p class="court__sub ellipsis">19:00'da açılacak</p>
+              <div class="court__foot">
+                <div class="progress progress--muted"><span style="--p: 50%"></span></div>
+                <div class="court__time"><span>16:00–19:00</span><strong>90 dk kaldı</strong></div>
+              </div>
+            </div>
+          </article>
+
+          <article class="court court--free">
+            <div class="court__visual">
+              <svg class="court__svg" viewBox="0 0 44 92" aria-hidden="true"><use class="court__lines" href="#court-lines"></use><path class="court__net" d="M-2 46H46"/></svg>
+            </div>
+            <div class="court__body">
+              <div class="court__head"><h3 class="court__name">Kort 4</h3><span class="court__surface">Toprak</span></div>
+              <p class="court__type"><span class="chip chip--sm chip--ok"><svg class="icon icon--xs" aria-hidden="true"><use href="#i-check"></use></svg>Müsait</span></p>
+              <p class="court__who ellipsis">18:00'e kadar boş</p>
+              <p class="court__sub ellipsis">Sıradaki: Zeynep Arslan</p>
+              <div class="court__foot">
+                <button class="btn btn--sm btn--accent btn--block" type="button"><svg class="icon icon--sm" aria-hidden="true"><use href="#i-plus"></use></svg>Rezervasyon yap</button>
+              </div>
+            </div>
+          </article>
+
+          <article class="court">
+            <div class="court__visual">
+              <svg class="court__svg" viewBox="0 0 44 92" aria-hidden="true"><use class="court__lines" href="#court-lines"></use><path class="court__net" d="M-2 46H46"/><circle class="player" cx="10" cy="10" r="4.2"/><circle class="player" cx="22" cy="10" r="4.2"/><circle class="player" cx="34" cy="10" r="4.2"/><circle class="player" cx="10" cy="31" r="4.2"/><circle class="player" cx="22" cy="31" r="4.2"/><circle class="player" cx="34" cy="31" r="4.2"/><circle class="coach" cx="22" cy="78" r="4.2"/></svg>
+            </div>
+            <div class="court__body">
+              <div class="court__head"><h3 class="court__name">Kort 5</h3><span class="court__surface">Sert zemin</span><span class="court__left">30 dk</span></div>
+              <p class="court__type"><svg class="icon" aria-hidden="true"><use href="#i-users-round"></use></svg>Grup dersi</p>
+              <p class="court__who ellipsis">Junior grubu · 6 kişi</p>
+              <p class="court__sub ellipsis">Ant. Ceren Başaran</p>
+              <div class="court__foot">
+                <div class="progress"><span style="--p: 67%"></span></div>
+                <div class="court__time"><span>16:30–18:00</span><strong>30 dk kaldı</strong></div>
+              </div>
+            </div>
+          </article>
+
+          <article class="court">
+            <div class="court__visual">
+              <svg class="court__svg" viewBox="0 0 44 92" aria-hidden="true"><use class="court__lines" href="#court-lines"></use><path class="court__net" d="M-2 46H46"/><circle class="player" cx="12" cy="10" r="4.2"/><circle class="player" cx="32" cy="10" r="4.2"/><circle class="player" cx="12" cy="82" r="4.2"/><circle class="player" cx="32" cy="82" r="4.2"/></svg>
+            </div>
+            <div class="court__body">
+              <div class="court__head"><h3 class="court__name">Kort 6</h3><span class="court__surface">Sert zemin</span><span class="court__left">60 dk</span></div>
+              <p class="court__type"><svg class="icon" aria-hidden="true"><use href="#i-user-round"></use></svg>Rezervasyon</p>
+              <p class="court__who ellipsis">Ece Koç, Sude Kalkan</p>
+              <p class="court__sub ellipsis">Çiftler · 4 oyuncu</p>
+              <div class="court__foot">
+                <div class="progress"><span style="--p: 4%"></span></div>
+                <div class="court__time"><span>17:30–18:30</span><strong>Yeni başladı</strong></div>
+              </div>
+            </div>
+          </article>
+
+          <article class="court">
+            <div class="court__visual">
+              <svg class="court__svg" viewBox="0 0 44 92" aria-hidden="true"><use class="court__lines" href="#court-lines"></use><path class="court__net" d="M-2 46H46"/><circle class="player" cx="12" cy="10" r="4.2"/><circle class="player" cx="32" cy="10" r="4.2"/><circle class="player" cx="12" cy="31" r="4.2"/><circle class="player" cx="32" cy="31" r="4.2"/><circle class="coach" cx="22" cy="78" r="4.2"/></svg>
+            </div>
+            <div class="court__body">
+              <div class="court__head"><h3 class="court__name">Kort 7</h3><span class="court__surface">Kapalı</span><span class="court__left">60 dk</span></div>
+              <p class="court__type"><svg class="icon" aria-hidden="true"><use href="#i-users-round"></use></svg>Grup dersi</p>
+              <p class="court__who ellipsis">Başlangıç · 4 kişi</p>
+              <p class="court__sub ellipsis">Ant. Serkan Uçar</p>
+              <div class="court__foot">
+                <div class="progress"><span style="--p: 33%"></span></div>
+                <div class="court__time"><span>17:00–18:30</span><strong>60 dk kaldı</strong></div>
+              </div>
+            </div>
+          </article>
+
+          <article class="court court--overtime">
+            <div class="court__visual">
+              <svg class="court__svg" viewBox="0 0 44 92" aria-hidden="true"><use class="court__lines" href="#court-lines"></use><path class="court__net" d="M-2 46H46"/><circle class="player" cx="22" cy="10" r="4.2"/><circle class="player" cx="22" cy="82" r="4.2"/></svg>
+            </div>
+            <div class="court__body">
+              <div class="court__head"><h3 class="court__name">Kort 8</h3><span class="court__surface">Kapalı</span><span class="court__left court__left--warn">Süre doldu</span></div>
+              <p class="court__type"><svg class="icon" aria-hidden="true"><use href="#i-user-round"></use></svg>Rezervasyon</p>
+              <p class="court__who ellipsis">Arda Polat, Efe Tunç</p>
+              <p class="court__sub ellipsis">Tekler · 2 oyuncu</p>
+              <div class="court__foot">
+                <div class="progress progress--warn"><span style="--p: 100%"></span></div>
+                <div class="court__time"><span>16:30–17:30</span><strong class="is-warn"><svg class="icon icon--xs" aria-hidden="true"><use href="#i-timer"></use></svg>Süre doldu</strong></div>
+              </div>
+            </div>
+          </article>
+
+        </div>
+      </section>
+
+      <!-- Sıradaki seanslar + Dikkat gerektirenler -->
+      <div class="split">
+
+        <section class="card sessions" aria-labelledby="sessions-title">
+          <header class="card__head">
+            <div>
+              <h2 class="card__title" id="sessions-title">Sıradaki seanslar</h2>
+              <p class="card__meta">Önümüzdeki 2 saat · 6 seans</p>
+            </div>
+            <a class="link" href="#">Tümü<svg class="icon" aria-hidden="true"><use href="#i-chevron-right"></use></svg></a>
+          </header>
+          <ol class="session-list">
+            <li class="session">
+              <div class="session__time"><strong>18:00</strong><span>19:00</span></div>
+              <div class="session__who"><span class="avatar" aria-hidden="true">ZA</span><div class="session__name"><strong class="ellipsis">Zeynep Arslan</strong><span class="session__member">Premium üye</span><span class="session__meta">Kort 4 · Rezervasyon</span></div></div>
+              <div class="stack session__court"><strong>Kort 4</strong><span>Toprak</span></div>
+              <div class="stack session__type"><strong><svg class="icon" aria-hidden="true"><use href="#i-user-round"></use></svg>Rezervasyon</strong><span>Tekler</span></div>
+              <div class="session__action"><button class="btn btn--sm btn--outline js-checkin" type="button"><svg class="icon icon--sm" aria-hidden="true"><use href="#i-check"></use></svg>Giriş yap</button></div>
+            </li>
+            <li class="session">
+              <div class="session__time"><strong>18:00</strong><span>19:00</span></div>
+              <div class="session__who"><span class="avatar avatar--lime" aria-hidden="true">BŞ</span><div class="session__name"><strong class="ellipsis">Burak Şahin</strong><span class="session__member">Standart üye</span><span class="session__meta">Kort 1 · Özel ders · Tolga Aksu</span></div></div>
+              <div class="stack session__court"><strong>Kort 1</strong><span>Toprak</span></div>
+              <div class="stack session__type"><strong><svg class="icon" aria-hidden="true"><use href="#i-whistle"></use></svg>Özel ders</strong><span class="ellipsis">Ant. Tolga Aksu</span></div>
+              <div class="session__action"><span class="chip chip--ok"><svg class="icon icon--sm" aria-hidden="true"><use href="#i-check"></use></svg>Geldi</span></div>
+            </li>
+            <li class="session">
+              <div class="session__time"><strong>18:00</strong><span>19:30</span></div>
+              <div class="session__who"><span class="avatar avatar--group" aria-hidden="true"><svg class="icon" aria-hidden="true"><use href="#i-users-round"></use></svg></span><div class="session__name"><strong class="ellipsis">Çiftler grubu</strong><span class="session__member">4 kişi</span><span class="session__meta">Kort 2 · Grup dersi · Melis Tan</span></div></div>
+              <div class="stack session__court"><strong>Kort 2</strong><span>Toprak</span></div>
+              <div class="stack session__type"><strong><svg class="icon" aria-hidden="true"><use href="#i-users-round"></use></svg>Grup dersi</strong><span class="ellipsis">Ant. Melis Tan</span></div>
+              <div class="session__action"><span class="chip chip--neutral">3/4 geldi</span></div>
+            </li>
+            <li class="session">
+              <div class="session__time"><strong>18:30</strong><span>19:30</span></div>
+              <div class="session__who"><span class="avatar" aria-hidden="true">OK</span><div class="session__name"><strong class="ellipsis">Ozan Kurt</strong><span class="session__member">Premium üye</span><span class="session__meta">Kort 5 · Rezervasyon</span></div></div>
+              <div class="stack session__court"><strong>Kort 5</strong><span>Sert zemin</span></div>
+              <div class="stack session__type"><strong><svg class="icon" aria-hidden="true"><use href="#i-user-round"></use></svg>Rezervasyon</strong><span>Tekler</span></div>
+              <div class="session__action"><button class="btn btn--sm btn--outline js-checkin" type="button"><svg class="icon icon--sm" aria-hidden="true"><use href="#i-check"></use></svg>Giriş yap</button></div>
+            </li>
+            <li class="session">
+              <div class="session__time"><strong>19:00</strong><span>20:00</span></div>
+              <div class="session__who"><span class="avatar avatar--lime" aria-hidden="true">KY</span><div class="session__name"><strong class="ellipsis">Kerem Yılmaz</strong><span class="session__member">Standart üye</span><span class="session__meta">Kort 8 · Rezervasyon</span></div></div>
+              <div class="stack session__court"><strong>Kort 8</strong><span>Kapalı</span></div>
+              <div class="stack session__type"><strong><svg class="icon" aria-hidden="true"><use href="#i-user-round"></use></svg>Rezervasyon</strong><span>Çiftler</span></div>
+              <div class="session__action"><span class="chip chip--warn"><svg class="icon icon--sm" aria-hidden="true"><use href="#i-wallet"></use></svg>Ödenmedi</span></div>
+            </li>
+            <li class="session">
+              <div class="session__time"><strong>19:00</strong><span>20:00</span></div>
+              <div class="session__who"><span class="avatar" aria-hidden="true">İG</span><div class="session__name"><strong class="ellipsis">İrem Güneş</strong><span class="session__member">Premium üye</span><span class="session__meta">Kort 3 · Özel ders · Ceren Başaran</span></div></div>
+              <div class="stack session__court"><strong>Kort 3</strong><span>Toprak</span></div>
+              <div class="stack session__type"><strong><svg class="icon" aria-hidden="true"><use href="#i-whistle"></use></svg>Özel ders</strong><span class="ellipsis">Ant. Ceren Başaran</span></div>
+              <div class="session__action"><button class="btn btn--sm btn--outline js-checkin" type="button"><svg class="icon icon--sm" aria-hidden="true"><use href="#i-check"></use></svg>Giriş yap</button></div>
+            </li>
+          </ol>
+          <footer class="sessions__foot">
+            <span>Bugün <strong>11 rezervasyon</strong> ve <strong>3 ders</strong> daha başlayacak</span>
+            <a class="link" href="#">Takvimde gör<svg class="icon" aria-hidden="true"><use href="#i-arrow-right"></use></svg></a>
+          </footer>
+        </section>
+
+        <section class="card attention" aria-labelledby="attention-title">
+          <header class="card__title-row">
+            <h2 class="card__title" id="attention-title">Dikkat gerektirenler</h2>
+            <span class="count">4</span>
+          </header>
+          <ul class="alert-list">
+            <li><a class="alert" href="#">
+              <span class="alert__icon alert__icon--warn"><svg class="icon" aria-hidden="true"><use href="#i-wallet"></use></svg></span>
+              <span class="alert__text"><strong>2 ödeme bekliyor</strong><span class="ellipsis">Kerem Yılmaz, Naz Özkan · ₺2.600</span></span>
+              <span class="alert__action">Tahsil et</span>
+              <svg class="icon alert__chev" aria-hidden="true"><use href="#i-chevron-right"></use></svg>
+            </a></li>
+            <li><a class="alert" href="#">
+              <span class="alert__icon alert__icon--ok"><svg class="icon" aria-hidden="true"><use href="#i-id-card"></use></svg></span>
+              <span class="alert__text"><strong>5 üyelik bu hafta bitiyor</strong><span class="ellipsis">Yenileme hatırlatması gönderilmedi</span></span>
+              <span class="alert__action">Hatırlat</span>
+              <svg class="icon alert__chev" aria-hidden="true"><use href="#i-chevron-right"></use></svg>
+            </a></li>
+            <li><a class="alert" href="#">
+              <span class="alert__icon alert__icon--neutral"><svg class="icon" aria-hidden="true"><use href="#i-wrench"></use></svg></span>
+              <span class="alert__text"><strong>Kort 3 bakımda</strong><span class="ellipsis">Zemin bakımı · 19:00'da açılacak</span></span>
+              <span class="alert__action">Düzenle</span>
+              <svg class="icon alert__chev" aria-hidden="true"><use href="#i-chevron-right"></use></svg>
+            </a></li>
+            <li><a class="alert" href="#">
+              <span class="alert__icon alert__icon--sage"><svg class="icon" aria-hidden="true"><use href="#i-cloud-rain"></use></svg></span>
+              <span class="alert__text"><strong>Yarın yağmur bekleniyor</strong><span class="ellipsis">Açık kortlarda 7 rezervasyon var</span></span>
+              <span class="alert__action">Üyelere bildir</span>
+              <svg class="icon alert__chev" aria-hidden="true"><use href="#i-chevron-right"></use></svg>
+            </a></li>
+          </ul>
+
+          <div class="activity">
+            <div class="activity__head"><h3>Son hareketler</h3><a href="#">Tümü</a></div>
+            <ul class="activity__list">
+              <li><span class="activity__dot"></span><span class="activity__text ellipsis"><strong>Naz Özkan</strong> üye olarak kaydedildi</span><time datetime="2026-09-28T17:25">5 dk önce</time></li>
+              <li><span class="activity__dot"></span><span class="activity__text ellipsis"><strong>Sude Kalkan</strong> 10 derslik paket aldı · ₺12.500</span><time datetime="2026-09-28T17:12">18 dk önce</time></li>
+              <li><span class="activity__dot activity__dot--danger"></span><span class="activity__text ellipsis"><strong>Umut Çetin</strong> rezervasyonunu iptal etti</span><time datetime="2026-09-28T17:03">27 dk önce</time></li>
+            </ul>
+          </div>
+        </section>
+      </div>
+
+      <!-- Gelir grafiği + Antrenörler -->
+      <div class="split">
+
+        <section class="card revenue" aria-labelledby="revenue-title">
+          <header class="card__head">
+            <div>
+              <h2 class="card__title js-chart-title" id="revenue-title">Gelir · son 7 gün</h2>
+              <p class="card__meta">22–28 Eylül<span class="hide-mobile"> · bugün 17:30 itibarıyla</span></p>
+            </div>
+            <div class="segmented">
+              <button type="button" class="js-series" data-series="gelir" aria-pressed="true">Gelir</button>
+              <button type="button" class="js-series" data-series="doluluk" aria-pressed="false">Doluluk</button>
+            </div>
+          </header>
+          <div class="revenue__summary">
+            <span class="revenue__total js-chart-total">₺358.850</span>
+            <span class="delta"><svg class="icon icon--xs" aria-hidden="true"><use href="#i-arrow-up-right"></use></svg><span class="js-chart-delta">%8</span></span>
+            <span class="revenue__compare">önceki 7 güne göre</span>
+          </div>
+          <div class="chart js-chart">
+            <div class="chart__y" aria-hidden="true"><span>₺80 bin</span><span>₺40 bin</span><span>₺0</span></div>
+            <div class="chart__plot">
+              <ol class="chart__bars">
+                <li class="bar" style="--h: 47.8%" data-day="Salı" tabindex="0" aria-label="Salı: ₺38.200"><span class="bar__value">₺38.200</span><span class="bar__fill"></span></li>
+                <li class="bar" style="--h: 51.9%" data-day="Çarşamba" tabindex="0" aria-label="Çarşamba: ₺41.500"><span class="bar__value">₺41.500</span><span class="bar__fill"></span></li>
+                <li class="bar" style="--h: 49.8%" data-day="Perşembe" tabindex="0" aria-label="Perşembe: ₺39.800"><span class="bar__value">₺39.800</span><span class="bar__fill"></span></li>
+                <li class="bar" style="--h: 65.4%" data-day="Cuma" tabindex="0" aria-label="Cuma: ₺52.300"><span class="bar__value">₺52.300</span><span class="bar__fill"></span></li>
+                <li class="bar bar--labelled" style="--h: 89.9%" data-day="Cumartesi" tabindex="0" aria-label="Cumartesi: ₺71.900"><span class="bar__value">₺71.900</span><span class="bar__fill"></span></li>
+                <li class="bar" style="--h: 83%" data-day="Pazar" tabindex="0" aria-label="Pazar: ₺66.400"><span class="bar__value">₺66.400</span><span class="bar__fill"></span></li>
+                <li class="bar bar--today bar--labelled" style="--h: 60.9%" data-day="Bugün" tabindex="0" aria-label="Bugün: ₺48.750"><span class="bar__value">₺48.750</span><span class="bar__fill"></span></li>
+              </ol>
+            </div>
+            <div class="chart__days" aria-hidden="true"><span>Sal</span><span>Çar</span><span>Per</span><span>Cum</span><span>Cmt</span><span>Paz</span><span class="is-today">Bugün</span></div>
+          </div>
+        </section>
+
+        <section class="card coaches" aria-labelledby="coaches-title">
+          <header class="card__head">
+            <div>
+              <h2 class="card__title" id="coaches-title">Antrenörler</h2>
+              <p class="card__meta">Bugün 14 ders · 4 antrenör sahada</p>
+            </div>
+            <a class="link" href="#">Tümü<svg class="icon" aria-hidden="true"><use href="#i-chevron-right"></use></svg></a>
+          </header>
+          <ul class="coach-list">
+            <li class="coach">
+              <span class="avatar avatar--lg avatar--deep" aria-hidden="true">TA</span>
+              <div class="coach__info"><span class="coach__name ellipsis">Tolga Aksu <span class="coach__role">· Baş antrenör</span></span><span class="coach__where">Kort 1 · 18:00'e kadar</span></div>
+              <div class="coach__load"><span>3/5 ders</span><span class="segments" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span></div>
+              <span class="coach__status"><span class="chip chip--ok"><span class="chip__dot"></span>Derste</span></span>
+            </li>
+            <li class="coach">
+              <span class="avatar avatar--lg" aria-hidden="true">CB</span>
+              <div class="coach__info"><span class="coach__name ellipsis">Ceren Başaran</span><span class="coach__where">Kort 5 · 18:00'e kadar</span></div>
+              <div class="coach__load"><span>2/4 ders</span><span class="segments" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i><i></i></span></div>
+              <span class="coach__status"><span class="chip chip--ok"><span class="chip__dot"></span>Derste</span></span>
+            </li>
+            <li class="coach">
+              <span class="avatar avatar--lg avatar--lime" aria-hidden="true">SU</span>
+              <div class="coach__info"><span class="coach__name ellipsis">Serkan Uçar</span><span class="coach__where">Kort 7 · 18:30'a kadar</span></div>
+              <div class="coach__load"><span>2/3 ders</span><span class="segments" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i></span></div>
+              <span class="coach__status"><span class="chip chip--ok"><span class="chip__dot"></span>Derste</span></span>
+            </li>
+            <li class="coach">
+              <span class="avatar avatar--lg" aria-hidden="true">MT</span>
+              <div class="coach__info"><span class="coach__name ellipsis">Melis Tan</span><span class="coach__where">Sıradaki 18:00 · Kort 2</span></div>
+              <div class="coach__load"><span>1/2 ders</span><span class="segments" aria-hidden="true"><i class="on"></i><i></i></span></div>
+              <span class="coach__status"><span class="chip chip--outline">Müsait</span></span>
+            </li>
+            <li class="coach coach--off">
+              <span class="avatar avatar--lg avatar--off" aria-hidden="true">BK</span>
+              <div class="coach__info"><span class="coach__name ellipsis">Barış Kılıç</span><span class="coach__where">Bugün ders yok</span></div>
+              <div class="coach__load"><span>—</span></div>
+              <span class="coach__status"><span class="chip chip--neutral">İzinli</span></span>
+            </li>
+          </ul>
+        </section>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- =====================================================
+       Mobil: alt sekme çubuğu, karartma, hızlı işlem
+       ===================================================== -->
+  <nav class="tabbar" aria-label="Alt menü">
+    <a class="tab" href="#" aria-current="page"><span class="tab__icon"><svg class="icon" aria-hidden="true"><use href="#i-house"></use></svg></span>Özet</a>
+    <a class="tab" href="#"><span class="tab__icon"><svg class="icon" aria-hidden="true"><use href="#i-calendar"></use></svg></span>Takvim</a>
+    <button class="fab js-sheet-open" type="button" aria-label="Hızlı işlem" aria-controls="quick-sheet" aria-expanded="false"><svg class="icon" aria-hidden="true"><use href="#i-plus"></use></svg></button>
+    <a class="tab" href="#"><span class="tab__icon"><svg class="icon" aria-hidden="true"><use href="#i-users"></use></svg></span>Üyeler</a>
+    <button class="tab js-nav-open" type="button" aria-controls="sidebar" aria-expanded="false"><span class="tab__icon"><svg class="icon" aria-hidden="true"><use href="#i-menu"></use></svg></span>Menü</button>
+  </nav>
+
+  <div class="scrim js-close" aria-hidden="true"></div>
+
+  <section class="sheet" id="quick-sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+    <span class="sheet__grip" aria-hidden="true"></span>
+    <div class="sheet__head">
+      <div>
+        <h2 class="sheet__title" id="sheet-title">Hızlı işlem</h2>
+        <p class="card__meta">Merkez Kulüp · 28 Eylül, 17:30</p>
+      </div>
+      <button class="sheet__close js-close" type="button" aria-label="Kapat"><svg class="icon icon--lg" aria-hidden="true"><use href="#i-x"></use></svg></button>
+    </div>
+    <div class="suggest">
+      <div class="suggest__text">
+        <span class="suggest__eyebrow">Şu an müsait</span>
+        <strong>Kort 4 · Toprak</strong>
+        <span>18:00'e kadar boş · 30 dk</span>
+      </div>
+      <button class="btn btn--primary" type="button"><svg class="icon icon--sm" aria-hidden="true"><use href="#i-plus"></use></svg>Hemen ayır</button>
+    </div>
+    <div class="actions">
+      <a class="action" href="#"><span class="action__icon action__icon--primary"><svg class="icon" aria-hidden="true"><use href="#i-plus"></use></svg></span><span class="action__text"><strong>Yeni Rezervasyon</strong>Kort, tarih ve saat seç</span><svg class="icon" aria-hidden="true"><use href="#i-chevron-right"></use></svg></a>
+      <a class="action" href="#"><span class="action__icon action__icon--lime"><svg class="icon" aria-hidden="true"><use href="#i-whistle"></use></svg></span><span class="action__text"><strong>Ders Planla</strong>Özel ya da grup dersi</span><svg class="icon" aria-hidden="true"><use href="#i-chevron-right"></use></svg></a>
+      <a class="action" href="#"><span class="action__icon action__icon--sage"><svg class="icon" aria-hidden="true"><use href="#i-user-plus"></use></svg></span><span class="action__text"><strong>Üye Ekle</strong>Ad, telefon ve üyelik tipi</span><svg class="icon" aria-hidden="true"><use href="#i-chevron-right"></use></svg></a>
+      <a class="action" href="#"><span class="action__icon action__icon--warn"><svg class="icon" aria-hidden="true"><use href="#i-wallet"></use></svg></span><span class="action__text"><strong>Ödeme Al</strong>2 bekleyen ödeme · ₺2.600</span><svg class="icon" aria-hidden="true"><use href="#i-chevron-right"></use></svg></a>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(() => {
+  const body = document.body;
+  const fab = document.querySelector('.js-sheet-open');
+  const navBtn = document.querySelector('.js-nav-open');
+  const sheet = document.getElementById('quick-sheet');
+  const sidebar = document.getElementById('sidebar');
+
+  // --- Mobil: hızlı işlem ve menü çekmecesi ---
+  const closeAll = () => {
+    const wasOpen = body.classList.contains('sheet-open') ? fab : body.classList.contains('nav-open') ? navBtn : null;
+    body.classList.remove('sheet-open', 'nav-open');
+    fab.setAttribute('aria-expanded', 'false');
+    navBtn.setAttribute('aria-expanded', 'false');
+    if (wasOpen) wasOpen.focus();
+  };
+  fab.addEventListener('click', () => {
+    if (body.classList.contains('sheet-open')) return closeAll();
+    body.classList.add('sheet-open');
+    fab.setAttribute('aria-expanded', 'true');
+    sheet.querySelector('.sheet__close').focus();
+  });
+  navBtn.addEventListener('click', () => {
+    body.classList.add('nav-open');
+    navBtn.setAttribute('aria-expanded', 'true');
+    sidebar.querySelector('.sidebar__close').focus();
+  });
+  document.querySelectorAll('.js-close').forEach(el => el.addEventListener('click', closeAll));
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && (body.classList.contains('sheet-open') || body.classList.contains('nav-open'))) closeAll();
+  });
+
+  // --- Sıradaki seanslar: "Giriş yap" → "Geldi" ---
+  document.querySelectorAll('.js-checkin').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const chip = document.createElement('span');
+      chip.className = 'chip chip--ok';
+      chip.innerHTML = '<svg class="icon icon--sm" aria-hidden="true"><use href="#i-check"></use></svg>Geldi';
+      btn.replaceWith(chip);
+    });
+  });
+
+  // --- Grafik: Gelir / Doluluk ---
+  const series = {
+    gelir: {
+      title: 'Gelir · son 7 gün', total: '₺358.850', delta: '%8',
+      max: 80000, ticks: ['₺80 bin', '₺40 bin', '₺0'],
+      values: [38200, 41500, 39800, 52300, 71900, 66400, 48750],
+      format: v => '₺' + v.toLocaleString('tr-TR'),
+    },
+    doluluk: {
+      title: 'Kort doluluğu · son 7 gün', total: '%79 ortalama', delta: '4 puan',
+      max: 100, ticks: ['%100', '%50', '%0'],
+      values: [68, 72, 70, 81, 94, 90, 76],
+      format: v => '%' + v,
+    },
+  };
+  const chart = document.querySelector('.js-chart');
+  const bars = [...chart.querySelectorAll('.bar')];
+  const render = key => {
+    const s = series[key];
+    const past = s.values.slice(0, 6);
+    const peak = past.indexOf(Math.max(...past));
+    bars.forEach((bar, i) => {
+      const v = s.values[i];
+      bar.style.setProperty('--h', (v / s.max * 100).toFixed(1) + '%');
+      bar.querySelector('.bar__value').textContent = s.format(v);
+      bar.setAttribute('aria-label', bar.dataset.day + ': ' + s.format(v));
+      bar.classList.toggle('bar--labelled', i === peak || i === bars.length - 1);
+    });
+    chart.querySelectorAll('.chart__y span').forEach((el, i) => { el.textContent = s.ticks[i]; });
+    document.querySelector('.js-chart-title').textContent = s.title;
+    document.querySelector('.js-chart-total').textContent = s.total;
+    document.querySelector('.js-chart-delta').textContent = s.delta;
+  };
+  document.querySelectorAll('.js-series').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.js-series').forEach(b => b.setAttribute('aria-pressed', String(b === btn)));
+      render(btn.dataset.series);
+    });
+  });
+})();
+</script>
+</body>
+</html>
