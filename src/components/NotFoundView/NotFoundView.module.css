@@ -1,0 +1,6 @@
+.wrap { min-height: 100dvh; display: grid; place-items: center; padding: 24px 16px; background: var(--bg); }
+.card { width: min(440px, 100%); display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
+.icon { width: 40px; height: 40px; color: var(--primary); }
+.title { font-size: 22px; font-weight: 800; }
+.path { max-width: 100%; overflow-wrap: anywhere; padding: 6px 10px; border-radius: var(--r-sm); background: var(--surface-alt); font-size: 13px; }
+.actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 6px; }
