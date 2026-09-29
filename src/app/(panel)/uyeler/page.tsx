@@ -16,8 +16,9 @@ const FILTERS = [
   { key: "bitti", label: "Süresi dolanlar" },
 ];
 
-export default async function MembersPage({ searchParams }: { searchParams: Promise<{ q?: string; filtre?: string }> }) {
-  const { q = "", filtre = "" } = await searchParams;
+export default async function MembersPage({ searchParams }: { searchParams: Promise<{ q?: string; filtre?: string; yeni?: string }> }) {
+  const { q = "", filtre = "", yeni = "" } = await searchParams;
+  const added = yeni.split(",").map(Number).filter((n) => Number.isInteger(n) && n > 0);
   const now = clubNow();
   const db = await getDb();
   const where: SQL[] = [];
@@ -40,6 +41,16 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
           </Link>
         </div>
       </header>
+
+      {added.length > 1 && (
+        <p className="notice notice--ok" role="status">
+          <span>
+            {added.length} kişi grup olarak kaydedildi.{" "}
+            <Link href={`/dersler/gruba-katil?uyeler=${added.join(",")}`}>Grup dersine ekle</Link> ·{" "}
+            <Link href={`/rezervasyonlar/yeni?tur=ozel&uyeler=${added.join(",")}`}>Ekibe özel ders aç</Link>
+          </span>
+        </p>
+      )}
 
       <section className="card">
         <form className="filters" role="search">
@@ -74,7 +85,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
                   const expired = end && end < now.date;
                   const soon = end && !expired && end <= addDays(now.date, 7);
                   return (
-                    <tr key={m.id}>
+                    <tr key={m.id} className={added.includes(m.id) ? "row-highlight" : undefined}>
                       <td>
                         <Link className="row-link" href={`/uyeler/${m.id}`}>{m.name}</Link>
                         <div className="muted">{TIER_LABEL[m.tier]}</div>

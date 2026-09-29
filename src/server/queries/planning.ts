@@ -293,3 +293,52 @@ export async function getOpenLessons(now: Now, coachId?: number): Promise<OpenLe
     half: usesHalfCourt({ kind: b.kind, exclusive: b.exclusive, memberCount: b.members.length }),
   }));
 }
+
+export interface GroupSeries {
+  key: string;
+  title: string;
+  level: string | null;
+  coachName: string;
+  courtName: string;
+  weekday: number;
+  start: string;
+  end: string;
+  sessions: { id: number; date: string; capacity: number; members: { id: number; name: string }[] }[];
+}
+
+/**
+ * Önümüzdeki 4 haftanın grup dersleri; aynı antrenör + gün + saat + ad
+ * ile tekrarlayan dersler tek grup (seri) olarak toplanır.
+ */
+export async function getGroupSeries(now: Now): Promise<GroupSeries[]> {
+  const db = await getDb();
+  const rows = await db
+    .select()
+    .from(s.bookings)
+    .where(
+      and(
+        eq(s.bookings.kind, "group"),
+        ne(s.bookings.status, "cancelled"),
+        ne(s.bookings.status, "completed"),
+        between(s.bookings.date, now.date, addDays(now.date, 27)),
+      ),
+    )
+    .orderBy(asc(s.bookings.date), asc(s.bookings.start));
+  const upcoming = rows.filter((b) => b.date > now.date || toMinutes(b.start) > toMinutes(now.time));
+  const detailed = await withDetails(upcoming);
+  const series = new Map<string, GroupSeries>();
+  for (const b of detailed) {
+    const title = b.title ?? "Grup dersi";
+    const key = `${b.coachId}|${weekdayOf(b.date)}|${b.start}|${title}`;
+    let g = series.get(key);
+    if (!g) {
+      g = {
+        key, title, level: b.level, coachName: b.coach?.name ?? "Antrenör yok", courtName: b.court.name,
+        weekday: weekdayOf(b.date), start: b.start, end: b.end, sessions: [],
+      };
+      series.set(key, g);
+    }
+    g.sessions.push({ id: b.id, date: b.date, capacity: b.capacity ?? 6, members: b.members.map((m) => ({ id: m.id, name: m.name })) });
+  }
+  return [...series.values()];
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, MousePointerClick } from "lucide-react";
+import { ChevronLeft, ChevronRight, MousePointerClick, Users } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { GroupLessonForm } from "@/components/LessonPlanner/GroupLessonForm";
@@ -45,6 +45,8 @@ interface Props {
   packages: PackageOption[];
   priceList: PriceList;
   levels: readonly string[];
+  /** Üye Ekle → "Grup olarak ekle" ile gelen, önceden seçili üyeler */
+  initialMembers?: number[];
 }
 
 const KINDS: { key: WizardKind; label: string; param: string }[] = [
@@ -207,6 +209,15 @@ export function BookingWizard(props: Props) {
         />
       </section>
 
+      {!!props.initialMembers?.length && (
+        <p className="notice notice--info">
+          <Users className="icon" aria-hidden="true" />
+          <span>
+            {props.members.filter((m) => props.initialMembers!.includes(m.id)).map((m) => m.name).join(", ")} seçili gelecek
+            {kind === "private" && props.initialMembers.length > 5 ? " (özel ders en fazla 5 kişi; ilk 5 kişi seçilir)" : ""}.
+          </span>
+        </p>
+      )}
       {!slot ? (
         <p className={styles.hint}>
           <MousePointerClick className="icon" aria-hidden="true" />
@@ -214,6 +225,7 @@ export function BookingWizard(props: Props) {
         </p>
       ) : kind === "reservation" && selectedCourt ? (
         <ReservationForm
+          initialSelected={props.initialMembers}
           key={`${date}-${selection?.columnId}-${slot.start}-${duration}`}
           court={selectedCourt}
           date={date}
@@ -226,6 +238,7 @@ export function BookingWizard(props: Props) {
         />
       ) : kind === "private" && coach ? (
         <PrivateLessonForm
+          initialSelected={props.initialMembers}
           key={`${date}-${selection?.columnId}-${slot.start}-${duration}`}
           coach={coach}
           date={date}
@@ -239,6 +252,7 @@ export function BookingWizard(props: Props) {
         />
       ) : kind === "group" && coach ? (
         <GroupLessonForm
+          initialSelected={props.initialMembers}
           key={`${date}-${selection?.columnId}-${slot.start}-${duration}`}
           coach={coach}
           date={date}

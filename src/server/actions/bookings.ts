@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { clubNow, weekdayOf } from "@/lib/clock";
@@ -314,4 +314,36 @@ export async function removeMemberFromBooking(input: { bookingId: number; member
   }
   refresh();
   return { ok: true };
+}
+
+/**
+ * Birlikte gelen üyeleri bir grubun seçilen derslerine ekler (kapasite her ders için ayrı kontrol edilir).
+ */
+export async function joinGroupLessons(input: { bookingIds: number[]; memberIds: number[] }): Promise<ActionResult<{ added: number; skipped: number }>> {
+  const bookingIds = [...new Set(input.bookingIds)].filter(Number.isInteger).slice(0, 12);
+  const memberIds = [...new Set(input.memberIds)].filter(Number.isInteger);
+  if (!bookingIds.length || !memberIds.length) return { ok: false, error: "Ders ve üye seçin." };
+  const db = await getDb();
+  let added = 0;
+  let skipped = 0;
+  for (const id of bookingIds) {
+    const b = await loadBooking(db, id);
+    if (!b || b.kind !== "group" || b.status === "cancelled" || b.status === "completed") {
+      skipped++;
+      continue;
+    }
+    const fresh = memberIds.filter((m) => !b.members.some((x) => x.id === m));
+    if (b.members.length + fresh.length > (b.capacity ?? MAX_GROUP_SIZE)) {
+      skipped++;
+      continue;
+    }
+    const list = await getPriceList(b.date);
+    await addGroupMembers(db, b.id, fresh, true, list.groupPerPerson);
+    added++;
+  }
+  if (!added) return { ok: false, error: "Seçilen derslerde yeterli boş yer kalmadı." };
+  const names = await db.select({ name: s.members.name }).from(s.members).where(inArray(s.members.id, memberIds));
+  await logActivity(db, names.map((n) => n.name.split(/\s+/)[0]).join(", "), `${added} grup dersine eklendi`);
+  refresh();
+  return { ok: true, added, skipped };
 }

@@ -20,7 +20,7 @@ const DEFAULT_DURATION: Record<WizardKind, number> = { group: 90, private: 60, r
 export default async function NewBookingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tur?: string; tarih?: string; kort?: string; saat?: string; hoca?: string; sure?: string }>;
+  searchParams: Promise<{ tur?: string; tarih?: string; kort?: string; saat?: string; hoca?: string; sure?: string; uyeler?: string }>;
 }) {
   const sp = await searchParams;
   const now = clubNow();
@@ -39,6 +39,8 @@ export default async function NewBookingPage({
     getPriceList(date),
   ]);
   const bookings = await withDetails(rows);
+  const wanted = (sp.uyeler ?? "").split(",").map(Number);
+  const initialMembers = members.filter((m) => wanted.includes(m.id)).map((m) => m.id);
   const coachId = coaches.some((c) => String(c.id) === sp.hoca) ? Number(sp.hoca) : null;
 
   return (
@@ -75,6 +77,7 @@ export default async function NewBookingPage({
         packages={packages}
         priceList={priceList}
         levels={LEVELS}
+        initialMembers={initialMembers}
       />
     </>
   );

@@ -32,15 +32,17 @@ interface Props {
   packages: PackageOption[];
   priceList: PriceList;
   onCreated: (id: number) => void;
+  /** Önceden seçili üyeler */
+  initialSelected?: number[];
   /** Takvimden seçilen kort */
   defaultCourtId?: number;
 }
 
 const sameSet = (a: number[], b: number[]) => a.length === b.length && a.every((x) => b.includes(x));
 
-export function PrivateLessonForm({ coach, date, today, slot, members, packages, priceList, onCreated, defaultCourtId }: Props) {
+export function PrivateLessonForm({ coach, date, today, slot, members, packages, priceList, onCreated, defaultCourtId, initialSelected }: Props) {
   const [courtId, setCourtId] = useState(slot.courts.find((c) => c.id === defaultCourtId)?.id ?? slot.courts.find((c) => c.state === "free")?.id ?? slot.courts[0].id);
-  const [selected, setSelected] = useState<number[]>([]);
+  const [selected, setSelected] = useState<number[]>(() => (initialSelected ?? []).slice(0, MAX_PRIVATE_PEOPLE));
   const [exclusive, setExclusive] = useState(false);
   const [source, setSource] = useState<Source>("newPackage");
   const [packageId, setPackageId] = useState<number | null>(null);
