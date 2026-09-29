@@ -1,0 +1,45 @@
+.segmented { flex-shrink: 0; display: flex; gap: 2px; padding: 3px; background: var(--surface-alt); border-radius: 12px; }
+.segmented button { height: 32px; padding: 0 14px; border: 0; border-radius: 9px; background: transparent; font-size: 13.5px; font-weight: 600; color: var(--text-2); }
+.segmented button[aria-pressed="true"] { background: var(--surface); box-shadow: var(--shadow-raised); font-weight: 700; color: var(--text); }
+
+.summary { margin-top: 14px; display: flex; align-items: center; flex-wrap: wrap; gap: 8px 10px; }
+.total { font-size: 30px; line-height: 1.1; font-weight: 700; letter-spacing: -.02em; }
+.compare { font-size: 13px; color: var(--text-2); }
+
+.chart { --plot-h: 200px; margin-top: 24px; display: grid; grid-template-columns: 52px minmax(0, 1fr); column-gap: 12px; }
+.y { position: relative; height: var(--plot-h); font-size: 12px; font-weight: 600; color: var(--text-2); font-variant-numeric: tabular-nums; }
+.y span { position: absolute; right: 0; transform: translateY(-50%); white-space: nowrap; }
+.y span:nth-child(1) { top: 0; }
+.y span:nth-child(2) { top: 50%; }
+.y span:nth-child(3) { top: 100%; }
+.plot {
+  position: relative; height: var(--plot-h); border-bottom: 1px solid var(--line-strong);
+  background:
+    linear-gradient(var(--line-soft), var(--line-soft)) 0 0 / 100% 1px no-repeat,
+    linear-gradient(var(--line-soft), var(--line-soft)) 0 50% / 100% 1px no-repeat;
+}
+.bars { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.bar { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 6px; outline-offset: 4px; }
+.bar > * { flex-shrink: 0; }
+.fill { width: 24px; height: var(--h); border-radius: 4px 4px 0 0; background: var(--chart-bar); transition: height .35s ease; }
+.value { font-size: 12px; font-weight: 700; color: var(--text-2); white-space: nowrap; font-variant-numeric: tabular-nums; visibility: hidden; }
+.labelled .value, .bar:hover .value, .bar:focus .value { visibility: visible; }
+.today .fill { background: var(--primary); }
+.today .value { font-size: 12.5px; font-weight: 800; color: var(--text); }
+.bar:hover .fill { filter: brightness(1.08); }
+.days { grid-column: 2; margin-top: 10px; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); text-align: center; font-size: 12.5px; font-weight: 600; color: var(--text-2); }
+.days .isToday { font-weight: 800; color: var(--text); }
+
+@media (max-width: 767px) {
+  .total { font-size: 25px; }
+  .segmented button { height: 30px; padding: 0 11px; font-size: 12.5px; }
+  .chart { --plot-h: 150px; margin-top: 22px; grid-template-columns: 44px minmax(0, 1fr); column-gap: 8px; }
+  .y { font-size: 11.5px; }
+  .fill { width: 20px; }
+  .value, .today .value { font-size: 11.5px; }
+  .days { font-size: 11.5px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fill { transition: none !important; }
+}

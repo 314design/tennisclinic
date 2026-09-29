@@ -1,0 +1,23 @@
+.coach { display: grid; grid-template-columns: 42px minmax(0, 1fr) 64px 74px; grid-template-areas: "avatar info load status"; align-items: center; gap: 12px; padding: 10px 0; }
+.coach + .coach { border-top: 1px solid var(--line-soft); }
+.avatar { grid-area: avatar; }
+.info { grid-area: info; min-width: 0; display: flex; flex-direction: column; }
+.name { font-size: 14.5px; font-weight: 700; }
+.role { font-size: 12.5px; font-weight: 600; color: var(--text-2); }
+.where { font-size: 12.5px; color: var(--text-2); }
+.load { grid-area: load; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; font-size: 12.5px; font-weight: 700; }
+.status { grid-area: status; justify-self: end; }
+.off .name, .off .load { color: var(--text-2); }
+.segments { width: 58px; display: flex; gap: 2px; }
+.segments i { flex: 1; height: 4px; border-radius: 2px; background: var(--line-control); }
+.segments i.on { background: var(--primary); }
+
+@media (max-width: 767px) {
+  .coach, .coach + .coach { flex: 0 0 144px; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "avatar status" "info info" "load load"; gap: 10px; padding: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); scroll-snap-align: start; }
+  .coach .avatar { width: 38px; height: 38px; font-size: 13px; }
+  .name { font-size: 14px; }
+  .role { display: none; }
+  .where { font-size: 12px; }
+  .load { flex-direction: row; align-items: center; justify-content: space-between; font-size: 12px; }
+  .status :global(.chip) { height: 24px; padding: 0 8px; font-size: 11.5px; }
+}

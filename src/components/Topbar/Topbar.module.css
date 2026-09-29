@@ -1,0 +1,27 @@
+.topbar {
+  position: sticky; top: 0; z-index: 30;
+  height: 76px; display: flex; align-items: center; gap: 10px; padding: 0 var(--gutter);
+  background: var(--topbar-bg); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.search {
+  flex: 0 1 400px; min-width: 180px; height: 46px;
+  display: flex; align-items: center; gap: 10px; padding: 0 8px 0 14px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); color: var(--icon-muted);
+}
+.search:focus-within { border-color: var(--primary); }
+.search input { flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: transparent; font-size: 15px; font-weight: 500; color: var(--text); }
+.search input::placeholder { color: var(--text-2); opacity: 1; }
+.search kbd { font: inherit; font-size: 12px; font-weight: 700; color: var(--text-2); background: var(--surface-alt); border: 1px solid var(--tc-soft-sage); border-radius: 7px; padding: 3px 7px; }
+.spacer { flex: 1; }
+.divider { width: 1px; height: 28px; margin: 0 6px; background: var(--line); }
+
+/* İkincil butonlar dar ekranda ikona dönüşür */
+@media (max-width: 1199px) {
+  .topbar .quiet { width: 46px; padding: 0; }
+  .label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+}
+
+@media (max-width: 767px) {
+  .topbar { display: none; }
+}

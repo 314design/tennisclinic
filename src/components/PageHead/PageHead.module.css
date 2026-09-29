@@ -1,0 +1,10 @@
+.eyebrow { font-size: 12.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--text-2); }
+.title { margin-top: 6px; font-size: 36px; line-height: 1.15; font-weight: 800; letter-spacing: -.025em; }
+.lede { margin-top: 8px; font-size: 16px; color: var(--text-2); }
+.lede strong { color: var(--text); font-weight: 700; }
+
+@media (max-width: 767px) {
+  .eyebrow { font-size: 11.5px; }
+  .title { margin-top: 4px; font-size: 28px; }
+  .lede { margin-top: 5px; font-size: 14.5px; }
+}
